@@ -1,5 +1,5 @@
 // src/screens/ShopDetailScreen.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,8 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-} from "react-native";
-import api, { API_BASE } from "../api/client";
+} from 'react-native';
+import api, { API_BASE } from '../api/client';
 
 // รูปแบบข้อมูลเมนูที่ backend ส่งมา
 type MenuItem = {
@@ -18,7 +18,7 @@ type MenuItem = {
   name: string;
   description?: string | null;
   price: number;
-  imageUrl?: string | null;     // มาจาก ImageUrl (NotMapped) ใน C#
+  imageUrl?: string | null; // มาจาก ImageUrl (NotMapped) ใน C#
   mainPhotoUrl?: string | null; // กันกรณี backend ยังส่งตัวนี้มาด้วย
 };
 
@@ -32,16 +32,16 @@ export default function ShopDetailScreen({ route, navigation }: any) {
 
   const BASE_URL = useMemo(
     () =>
-      (api.defaults.baseURL ?? API_BASE).replace(/\/api\/?$/, "") ||
-      "http://10.0.2.2:7284",
-    []
+      (api.defaults.baseURL ?? API_BASE).replace(/\/api\/?$/, '') ||
+      'http://10.0.2.2:7284',
+    [],
   );
 
   // โหลดเมนูตาม shop.id
   useEffect(() => {
     if (!shop?.id) {
       setLoading(false);
-      setError("ไม่พบข้อมูลร้าน (shop.id)");
+      setError('ไม่พบข้อมูลร้าน (shop.id)');
       return;
     }
 
@@ -52,7 +52,7 @@ export default function ShopDetailScreen({ route, navigation }: any) {
         setLoading(true);
         setError(null);
 
-        const res = await api.get<MenuItem[]>("/MenuItems", {
+        const res = await api.get<MenuItem[]>('/MenuItems', {
           params: { shopId: shop.id },
         });
 
@@ -60,12 +60,12 @@ export default function ShopDetailScreen({ route, navigation }: any) {
           setMenuItems(res.data ?? []);
         }
       } catch (e: any) {
-        console.error("Load menu error:", e);
+        console.error('Load menu error:', e);
         if (mounted) {
           setError(
             e?.response?.data?.toString() ??
               e?.message ??
-              "เกิดข้อผิดพลาดในการโหลดเมนู"
+              'เกิดข้อผิดพลาดในการโหลดเมนู',
           );
         }
       } finally {
@@ -78,71 +78,71 @@ export default function ShopDetailScreen({ route, navigation }: any) {
     };
   }, [shop?.id, BASE_URL]);
 
-  // helper สร้าง source ของรูปเมนูจาก path ใน SQL
   const getMenuImageSource = (item: MenuItem) => {
-    if (item.imageUrl) {
-      // ถ้า backend ส่งมาเป็น URL เต็ม
-      if (item.imageUrl.startsWith("http")) {
-        return { uri: item.imageUrl };
+    // ใช้ค่าจาก imageUrl หรือ mainPhotoUrl ก็ได้
+    const path = item.imageUrl || item.mainPhotoUrl;
+
+    if (path) {
+      // 1. ถ้าเป็น URL เต็ม (http...) -> ใช้เลย
+      if (path.startsWith('http')) {
+        return { uri: path };
       }
-      // ถ้าเป็น path เช่น /shop_uploads/menuitems/1_1.png
+
+      // 2. ✅ (แก้ตรงนี้) ถ้าเป็น Path ที่เริ่มด้วย / แสดงว่าเป็น Path เต็มแล้ว -> ต่อ BASE_URL ได้เลย
+      // (สำหรับข้อมูลใหม่ที่บันทึกเป็น /shop_uploads/menu/...)
+      if (path.startsWith('/')) {
+        return { uri: `${BASE_URL}${path}` };
+      }
+
+      // 3. ถ้าเป็นแค่ชื่อไฟล์ (ข้อมูลเก่า) -> ให้ต่อโฟลเดอร์ menuitems เอง
       return {
-        uri: `${BASE_URL}${
-          item.imageUrl.startsWith("/") ? "" : "/"
-        }${item.imageUrl}`,
+        uri: `${BASE_URL}/shop_uploads/menuitems/${path}`,
       };
     }
 
-    if (item.mainPhotoUrl) {
-      // กันกรณีใช้ MainPhotoUrl เดิม
-      return {
-        uri: `${BASE_URL}/shop_uploads/menuitems/${item.mainPhotoUrl}`,
-      };
-    }
-
-    // ถ้าไม่มีรูปใน DB เลย ค่อย fallback เป็นรูป local
-    return require("../../assets/images/CATAGORY_ICON_BURGERS.png");
+    // 4. ถ้าไม่มีข้อมูลเลย -> ใช้รูป Placeholder
+    return require('../../assets/images/CATAGORY_ICON_BURGERS.png');
   };
 
   // helper สร้าง URL รูปร้าน (promo)
   const getShopHeroSource = () => {
     if (!shop?.promoUrl) return null;
 
-    if (shop.promoUrl.startsWith("http")) {
+    if (shop.promoUrl.startsWith('http')) {
       return { uri: shop.promoUrl };
     }
 
     return {
-      uri: `${BASE_URL}${
-        shop.promoUrl.startsWith("/") ? "" : "/"
-      }${shop.promoUrl}`,
+      uri: `${BASE_URL}${shop.promoUrl.startsWith('/') ? '' : '/'}${
+        shop.promoUrl
+      }`,
     };
   };
 
   const heroSrc = getShopHeroSource();
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
         {/* ส่วน header รูปร้าน */}
         {heroSrc ? (
           <Image source={heroSrc} style={styles.heroImage} resizeMode="cover" />
         ) : (
-          <View style={[styles.heroImage, { backgroundColor: "#ddd" }]} />
+          <View style={[styles.heroImage, { backgroundColor: '#ddd' }]} />
         )}
 
         {/* การ์ดข้อมูลร้าน */}
         <View style={styles.infoCard}>
           <Text style={styles.shopNameRow}>
-            <Text style={styles.shopName}>{shop?.name ?? "Shop"}</Text>
-            <Text style={styles.verifyDot}>  ✓</Text>
+            <Text style={styles.shopName}>{shop?.name ?? 'Shop'}</Text>
+            <Text style={styles.verifyDot}> ✓</Text>
           </Text>
 
           <View style={styles.row}>
-            <Text style={[styles.badgeOpen, { color: "#1BAF5D" }]}>Open</Text>
+            <Text style={[styles.badgeOpen, { color: '#1BAF5D' }]}>Open</Text>
             <Text style={styles.sepDot}> · </Text>
             <Text style={styles.addrText}>
-              {shop?.description ?? "รายละเอียดร้าน / ที่อยู่ ..."}
+              {shop?.description ?? 'รายละเอียดร้าน / ที่อยู่ ...'}
             </Text>
           </View>
 
@@ -173,28 +173,37 @@ export default function ShopDetailScreen({ route, navigation }: any) {
               <ActivityIndicator size="large" />
             </View>
           ) : error ? (
-            <Text style={{ color: "red", marginTop: 8 }}>{error}</Text>
+            <Text style={{ color: 'red', marginTop: 8 }}>{error}</Text>
           ) : menuItems.length === 0 ? (
             <Text style={{ opacity: 0.6, marginTop: 8 }}>
               ยังไม่มีเมนูสำหรับร้านนี้
             </Text>
           ) : (
-            menuItems.map((item) => (
+            menuItems.map(item => (
               <View key={item.id} style={styles.menuRow}>
                 <TouchableOpacity
-                  style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    flex: 1,
+                  }}
                   activeOpacity={0.8}
                   onPress={() =>
-                    navigation.navigate("FoodDetail", {
+                    navigation.navigate('FoodDetail', {
                       menuItemId: item.id,
                       shop,
                     })
                   }
                 >
-                  <Image source={getMenuImageSource(item)} style={styles.menuThumb} />
+                  <Image
+                    source={getMenuImageSource(item)}
+                    style={styles.menuThumb}
+                  />
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={styles.menuName}>{item.name}</Text>
-                    <Text style={styles.menuPrice}>฿ {Number(item.price).toFixed(2)}</Text>
+                    <Text style={styles.menuPrice}>
+                      ฿ {Number(item.price).toFixed(2)}
+                    </Text>
                     {item.description ? (
                       <Text style={styles.menuType} numberOfLines={2}>
                         {item.description}
@@ -204,7 +213,7 @@ export default function ShopDetailScreen({ route, navigation }: any) {
                 </TouchableOpacity>
 
                 <TouchableOpacity>
-                  <Text style={{ fontSize: 20, color: "#FFB020" }}>★</Text>
+                  <Text style={{ fontSize: 20, color: '#FFB020' }}>★</Text>
                 </TouchableOpacity>
               </View>
             ))
@@ -219,7 +228,7 @@ export default function ShopDetailScreen({ route, navigation }: any) {
         onPress={() => navigation.goBack()}
       >
         <Text
-          style={{ color: "#172B4D", fontWeight: "700", fontSize: 16 }}
+          style={{ color: '#172B4D', fontWeight: '700', fontSize: 16 }}
         >{`‹ Back`}</Text>
       </TouchableOpacity>
     </View>
@@ -228,68 +237,68 @@ export default function ShopDetailScreen({ route, navigation }: any) {
 
 const styles = StyleSheet.create({
   heroImage: {
-    width: "100%",
+    width: '100%',
     height: 200,
-    backgroundColor: "#ccc",
+    backgroundColor: '#ccc',
   },
   infoCard: {
-    backgroundColor: "#fff",
+    backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     marginTop: -24,
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 12,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOpacity: 0.07,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: -2 },
     elevation: 4,
   },
   shopNameRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     fontSize: 20,
-    fontWeight: "800",
-    color: "#172B4D",
+    fontWeight: '800',
+    color: '#172B4D',
   },
   shopName: {
     fontSize: 20,
-    fontWeight: "800",
-    color: "#172B4D",
+    fontWeight: '800',
+    color: '#172B4D',
   },
   verifyDot: {
     fontSize: 18,
-    fontWeight: "700",
-    color: "#1BAF5D",
+    fontWeight: '700',
+    color: '#1BAF5D',
   },
   row: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 8,
-    flexWrap: "wrap",
+    flexWrap: 'wrap',
   },
   rowChips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     marginTop: 12,
   },
   badgeOpen: {
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: '700',
   },
   sepDot: {
-    color: "#7B8AA3",
+    color: '#7B8AA3',
     marginHorizontal: 4,
   },
   addrText: {
-    color: "#7B8AA3",
+    color: '#7B8AA3',
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   detailChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFF7E8",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF7E8',
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -297,59 +306,59 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   star: {
-    color: "#F59E0B",
-    fontWeight: "700",
+    color: '#F59E0B',
+    fontWeight: '700',
   },
   chipTextSmall: {
     fontSize: 13,
-    fontWeight: "700",
-    color: "#172B4D",
+    fontWeight: '700',
+    color: '#172B4D',
   },
   sectionHeader: {
     fontSize: 16,
-    fontWeight: "800",
-    color: "#172B4D",
+    fontWeight: '800',
+    color: '#172B4D',
     marginBottom: 12,
   },
   menuRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#EDEFF4",
+    borderBottomColor: '#EDEFF4',
   },
   menuThumb: {
     width: 64,
     height: 64,
     borderRadius: 12,
-    backgroundColor: "#EEE",
+    backgroundColor: '#EEE',
   },
   menuName: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#172B4D",
+    fontWeight: '700',
+    color: '#172B4D',
   },
   menuPrice: {
     fontSize: 14,
-    fontWeight: "700",
-    color: "#172B4D",
+    fontWeight: '700',
+    color: '#172B4D',
     marginTop: 4,
   },
   menuType: {
     fontSize: 13,
-    fontWeight: "500",
-    color: "#7B8AA3",
+    fontWeight: '500',
+    color: '#7B8AA3',
     marginTop: 2,
   },
   backBtn: {
-    position: "absolute",
+    position: 'absolute',
     top: 40,
     left: 16,
-    backgroundColor: "rgba(255,255,255,0.9)",
+    backgroundColor: 'rgba(255,255,255,0.9)',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },

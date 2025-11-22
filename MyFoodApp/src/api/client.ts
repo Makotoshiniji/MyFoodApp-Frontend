@@ -4,6 +4,7 @@ import axios from "axios";
 // ✅ Base URL ของ backend ASP.NET Core
 // 10.0.2.2 ใช้ตอนรัน Android Emulator (เชื่อม localhost ของเครื่องเรา)
 export const API_BASE = "http://10.0.2.2:7284/api";
+// export const API_BASE = "http://10.0.2.2:6445/api";
 
 // ✅ ตั้งค่า axios instance ตัวหลัก
 const api = axios.create({

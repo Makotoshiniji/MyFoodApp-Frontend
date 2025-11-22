@@ -1,5 +1,5 @@
 // src/screens/HomeScreen.tsx
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,16 +7,16 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
-} from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import api, { API_BASE } from "../api/client";
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import api, { API_BASE } from '../api/client';
 
-const BASE_HOST = API_BASE.replace("/api", ""); // => http://10.0.2.2:7284
+const BASE_HOST = API_BASE.replace('/api', ''); // => http://10.0.2.2:7284
 
 const toAbsolute = (p?: string | null) => {
   if (!p) return null;
   if (/^https?:\/\//i.test(p)) return p;
-  return `${BASE_HOST}${p.startsWith("/") ? "" : "/"}${p}`;
+  return `${BASE_HOST}${p.startsWith('/') ? '' : '/'}${p}`;
 };
 
 // ---------------- Types ----------------
@@ -32,66 +32,66 @@ type Shop = {
 
 // ---------------- Assets ----------------
 const ICONS = {
-  searchbar: require("../../assets/images/SEARCHBAR_ICON.png"),
-  dropdown: require("../../assets/images/DROP_DOWN_ICON.png"),
+  searchbar: require('../../assets/images/SEARCHBAR_ICON.png'),
+  dropdown: require('../../assets/images/DROP_DOWN_ICON.png'),
 };
 
 const CATS = [
   {
-    key: "burgers",
-    titleTh: "Burgers",
-    img: require("../../assets/images/CATAGORY_ICON_BURGERS.png"),
+    key: 'burgers',
+    titleTh: 'Burgers',
+    img: require('../../assets/images/CATAGORY_ICON_BURGERS.png'),
   },
   {
-    key: "chicken",
-    titleTh: "Chicken",
-    img: require("../../assets/images/CATAGORY_ICON_CHICKEN.png"),
+    key: 'chicken',
+    titleTh: 'Chicken',
+    img: require('../../assets/images/CATAGORY_ICON_CHICKEN.png'),
   },
   {
-    key: "drinks",
-    titleTh: "Drinks",
-    img: require("../../assets/images/CATAGORY_ICON_DRINKS.png"),
+    key: 'drinks',
+    titleTh: 'Drinks',
+    img: require('../../assets/images/CATAGORY_ICON_DRINKS.png'),
   },
   {
-    key: "pizza",
-    titleTh: "Pizza",
-    img: require("../../assets/images/CATAGORY_ICON_PIZZA.png"),
+    key: 'pizza',
+    titleTh: 'Pizza',
+    img: require('../../assets/images/CATAGORY_ICON_PIZZA.png'),
   },
   {
-    key: "sandwich",
-    titleTh: "Sandwich",
-    img: require("../../assets/images/CATAGORY_ICON_SANWICH.png"),
+    key: 'sandwich',
+    titleTh: 'Sandwich',
+    img: require('../../assets/images/CATAGORY_ICON_SANWICH.png'),
   },
 ];
 
 const SHOP_IMAGES: Record<string, any> = {
-  KFC: require("../../assets/images/SHOP_KFC.png"),
-  McDonald: require("../../assets/images/SHOP_MCD.png"),
-  "Burger King": require("../../assets/images/SHOP_BK.png"),
+  KFC: require('../../assets/images/SHOP_KFC.png'),
+  McDonald: require('../../assets/images/SHOP_MCD.png'),
+  'Burger King': require('../../assets/images/SHOP_BK.png'),
 };
-const SHOP_PLACEHOLDER = require("../../assets/images/CATAGORY_ICON_BURGERS.png");
+const SHOP_PLACEHOLDER = require('../../assets/images/CATAGORY_ICON_BURGERS.png');
 
 // ---------------- Screen ----------------
 export default function HomeScreen({ navigation, currentUser }: any) {
   const [shops, setShops] = useState<Shop[]>([]);
-  const [activeCat, setActiveCat] = useState<string>("all");
-  type TopTab = "nearby" | "sales" | "rate" | "fast";
-  const [topTab, setTopTab] = useState<TopTab>("nearby");
+  const [activeCat, setActiveCat] = useState<string>('all');
+  type TopTab = 'nearby' | 'sales' | 'rate' | 'fast';
+  const [topTab, setTopTab] = useState<TopTab>('nearby');
   const [cartCount, setCartCount] = useState(0);
-   const [showPromo, setShowPromo] = useState(true);
+  const [showPromo, setShowPromo] = useState(true);
 
   const getETA = (s: Shop) => ((s.id * 7) % 20) + 10; // 10–29 นาที
 
   const displayedShops = useMemo(() => {
     const arr = [...shops];
     switch (topTab) {
-      case "sales":
+      case 'sales':
         return arr.sort((a, b) => (b.ratingCount ?? 0) - (a.ratingCount ?? 0));
-      case "rate":
+      case 'rate':
         return arr.sort((a, b) => (b.ratingAvg ?? 0) - (a.ratingAvg ?? 0));
-      case "fast":
+      case 'fast':
         return arr.sort((a, b) => getETA(a) - getETA(b));
-      case "nearby":
+      case 'nearby':
       default:
         return arr;
     }
@@ -114,7 +114,7 @@ export default function HomeScreen({ navigation, currentUser }: any) {
 
       setCartCount(total);
     } catch (err) {
-      console.log("loadCartCount error:", err);
+      console.log('loadCartCount error:', err);
       setCartCount(0);
     }
   }, [currentUser?.id]);
@@ -125,10 +125,10 @@ export default function HomeScreen({ navigation, currentUser }: any) {
     (async () => {
       try {
         // โหลดร้านทั้งหมด
-        const res = await api.get<Shop[]>("/shops");
+        const res = await api.get<Shop[]>('/shops');
         if (mounted) setShops(res.data ?? []);
       } catch (e) {
-        console.log("GET /shops error", e);
+        console.log('GET /shops error', e);
         if (mounted) {
           setShops([]);
         }
@@ -143,14 +143,14 @@ export default function HomeScreen({ navigation, currentUser }: any) {
   useFocusEffect(
     useCallback(() => {
       loadCartCount();
-    }, [loadCartCount])
+    }, [loadCartCount]),
   );
 
   const popularTop4 = useMemo(() => {
-    const withScore = shops.map((s) => ({
+    const withScore = shops.map(s => ({
       ...s,
       score:
-        typeof s.ratingCount === "number"
+        typeof s.ratingCount === 'number'
           ? s.ratingCount
           : Math.floor(Math.random() * 100),
     }));
@@ -160,13 +160,10 @@ export default function HomeScreen({ navigation, currentUser }: any) {
   }, [shops]);
 
   const openShop = (shop: Shop) => {
-    navigation.navigate("ShopDetail", { shop });
+    navigation.navigate('ShopDetail', { shop });
   };
 
-  const greetingName =
-    currentUser?.username || currentUser?.email || "Guest";
-
-  
+  const greetingName = currentUser?.username || currentUser?.email || 'Guest';
 
   return (
     <View style={styles.screen}>
@@ -178,8 +175,17 @@ export default function HomeScreen({ navigation, currentUser }: any) {
         <View style={styles.header}>
           {/* top row: sidebar + deliver to + bag */}
           <View style={styles.headerRow}>
-            {/* sidebar button */}
-            <TouchableOpacity style={styles.sidebarBtn} activeOpacity={0.8}>
+            <TouchableOpacity
+              style={styles.sidebarBtn}
+              activeOpacity={0.8}
+              onPress={() => {
+                // 1. Log ค่าออกมาดู (จะทำงานเมื่อกดปุ่มเท่านั้น)
+                console.log('กดปุ่ม Profile, ส่ง userId:', currentUser?.id);
+
+                // 2. สั่งเปลี่ยนหน้า พร้อมส่ง userId
+                navigation.navigate('Profile', { userId: currentUser?.id });
+              }}
+            >
               <View style={styles.sidebarLine} />
               <View style={[styles.sidebarLine, { width: 14 }]} />
               <View style={[styles.sidebarLine, { width: 10 }]} />
@@ -188,7 +194,7 @@ export default function HomeScreen({ navigation, currentUser }: any) {
             {/* deliver to */}
             <View style={styles.headerCenter}>
               <Text style={styles.deliverToLabel}>DELIVER TO</Text>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Text style={styles.locationText} numberOfLines={1}>
                   KhonKean University
                 </Text>
@@ -201,13 +207,13 @@ export default function HomeScreen({ navigation, currentUser }: any) {
               style={styles.bagWrapper}
               activeOpacity={0.85}
               onPress={() =>
-                navigation.navigate("AllCart", { userId: currentUser.id })
+                navigation.navigate('AllCart', { userId: currentUser.id })
               }
             >
               <View style={styles.bagCircle}>
                 <Image
-                  source={require("../../assets/images/ICON_BAG.png")}
-                  style={{ width: 22, height: 22, tintColor: "#fff" }}
+                  source={require('../../assets/images/ICON_BAG.png')}
+                  style={{ width: 22, height: 22, tintColor: '#fff' }}
                   resizeMode="contain"
                 />
               </View>
@@ -223,7 +229,7 @@ export default function HomeScreen({ navigation, currentUser }: any) {
 
           {/* greeting */}
           <Text style={styles.greetingText}>
-            Hey {greetingName},{" "}
+            Hey {greetingName},{' '}
             <Text style={styles.greetingBold}>Good Afternoon!</Text>
           </Text>
 
@@ -254,15 +260,18 @@ export default function HomeScreen({ navigation, currentUser }: any) {
           {/* ปุ่ม All */}
           <TouchableOpacity
             key="all"
-            style={[styles.catPill, activeCat === "all" && styles.catPillActive]}
-            onPress={() => setActiveCat("all")}
+            style={[
+              styles.catPill,
+              activeCat === 'all' && styles.catPillActive,
+            ]}
+            onPress={() => setActiveCat('all')}
             activeOpacity={0.9}
           >
             <View style={styles.catPillCircle} />
             <Text
               style={[
                 styles.catPillLabel,
-                activeCat === "all" && styles.catPillLabelActive,
+                activeCat === 'all' && styles.catPillLabelActive,
               ]}
             >
               All
@@ -270,7 +279,7 @@ export default function HomeScreen({ navigation, currentUser }: any) {
           </TouchableOpacity>
 
           {/* หมวดอื่น ๆ */}
-          {CATS.map((c) => {
+          {CATS.map(c => {
             const active = activeCat === c.key;
             return (
               <TouchableOpacity
@@ -279,7 +288,11 @@ export default function HomeScreen({ navigation, currentUser }: any) {
                 onPress={() => setActiveCat(c.key)}
                 activeOpacity={0.9}
               >
-                <Image source={c.img} style={styles.catIcon} resizeMode="contain" />
+                <Image
+                  source={c.img}
+                  style={styles.catIcon}
+                  resizeMode="contain"
+                />
                 <Text
                   style={[
                     styles.catPillLabel,
@@ -308,7 +321,7 @@ export default function HomeScreen({ navigation, currentUser }: any) {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.popularRow}
             >
-              {popularTop4.map((s) => (
+              {popularTop4.map(s => (
                 <TouchableOpacity
                   key={s.id}
                   style={styles.popularCard}
@@ -325,7 +338,7 @@ export default function HomeScreen({ navigation, currentUser }: any) {
                       {s.name}
                     </Text>
                     <Text style={styles.popularSub} numberOfLines={1}>
-                      {s.description ?? "Burger · Chicken · Wings"}
+                      {s.description ?? 'Burger · Chicken · Wings'}
                     </Text>
                     <View style={styles.popularMetaRow}>
                       <Text style={styles.metaStar}>
@@ -352,7 +365,7 @@ export default function HomeScreen({ navigation, currentUser }: any) {
             </TouchableOpacity>
           </View>
 
-          {displayedShops.map((s) => {
+          {displayedShops.map(s => {
             const url = toAbsolute(s.promoUrl);
             const src = url ? { uri: url } : SHOP_PLACEHOLDER;
             const eta = getETA(s);
@@ -362,7 +375,7 @@ export default function HomeScreen({ navigation, currentUser }: any) {
                 key={s.id}
                 style={styles.restaurantCard}
                 activeOpacity={0.9}
-                onPress={() => navigation.navigate("ShopDetail", { shop: s })}
+                onPress={() => navigation.navigate('ShopDetail', { shop: s })}
               >
                 <Image
                   source={src}
@@ -373,7 +386,7 @@ export default function HomeScreen({ navigation, currentUser }: any) {
                   {s.name}
                 </Text>
                 <Text style={styles.restaurantTags} numberOfLines={1}>
-                  {s.description ?? "Burger · Chicken · Rice · Wings"}
+                  {s.description ?? 'Burger · Chicken · Rice · Wings'}
                 </Text>
 
                 <View style={styles.restaurantMetaRow}>
@@ -395,7 +408,7 @@ export default function HomeScreen({ navigation, currentUser }: any) {
           <View style={styles.promoCardWrapper}>
             {/* ตัวรูปโปรโมชั่น */}
             <Image
-              source={require("../../assets/images/Offer1.png")}
+              source={require('../../assets/images/Offer1.png')}
               style={styles.promoImage}
               resizeMode="contain"
             />
@@ -428,7 +441,7 @@ export default function HomeScreen({ navigation, currentUser }: any) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFFFF',
   },
 
   // HEADER
@@ -438,23 +451,23 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   sidebarBtn: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#F3F4F8",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#F3F4F8',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sidebarLine: {
     width: 18,
     height: 2,
     borderRadius: 999,
-    backgroundColor: "#111827",
+    backgroundColor: '#111827',
     marginVertical: 2,
   },
   headerCenter: {
@@ -463,70 +476,70 @@ const styles = StyleSheet.create({
   },
   deliverToLabel: {
     fontSize: 12,
-    fontWeight: "700",
-    color: "#F97316",
+    fontWeight: '700',
+    color: '#F97316',
     letterSpacing: 0.8,
   },
   locationText: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
+    fontWeight: '700',
+    color: '#111827',
   },
   dropdownIcon: {
     width: 10,
     height: 10,
     marginLeft: 6,
-    tintColor: "#111827",
+    tintColor: '#111827',
   },
   bagWrapper: {
     width: 56,
     height: 56,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bagCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#111827",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#111827',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bagIcon: {
     fontSize: 20,
-    color: "#FFFFFF",
+    color: '#FFFFFF',
   },
   bagBadge: {
-    position: "absolute",
+    position: 'absolute',
     top: 6,
     right: 8,
-    backgroundColor: "#F97316",
+    backgroundColor: '#F97316',
     width: 22,
     height: 22,
     borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   bagBadgeText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: '700',
   },
   greetingText: {
     marginTop: 24,
     fontSize: 22,
-    color: "#111827",
+    color: '#111827',
   },
   greetingBold: {
-    fontWeight: "800",
+    fontWeight: '800',
   },
 
   // SEARCH
   searchBar: {
     marginTop: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F3F5F9",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F5F9',
     borderRadius: 20,
     paddingHorizontal: 18,
     height: 56,
@@ -538,27 +551,27 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   searchPlaceholder: {
-    color: "#9CA3AF",
+    color: '#9CA3AF',
     fontSize: 15,
   },
 
   // SECTIONS
   sectionHeaderRow: {
     paddingHorizontal: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
+    fontWeight: '700',
+    color: '#111827',
   },
   seeAll: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#4B5563",
+    fontWeight: '600',
+    color: '#4B5563',
   },
 
   // CATEGORY PILL
@@ -568,14 +581,14 @@ const styles = StyleSheet.create({
     paddingLeft: 24,
   },
   catPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 999,
     marginRight: 12,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOpacity: 0.07,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
@@ -583,22 +596,22 @@ const styles = StyleSheet.create({
   },
   catIcon: { width: 36, height: 36, marginRight: 10 },
   catPillActive: {
-    backgroundColor: "#ffd873",
+    backgroundColor: '#ffd873',
   },
   catPillCircle: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#9CA3AF",
+    backgroundColor: '#9CA3AF',
     marginRight: 10,
   },
   catPillLabel: {
     fontSize: 15,
-    fontWeight: "700",
-    color: "#111827",
+    fontWeight: '700',
+    color: '#111827',
   },
   catPillLabelActive: {
-    color: "#111827",
+    color: '#111827',
   },
 
   // POPULAR
@@ -612,17 +625,17 @@ const styles = StyleSheet.create({
   popularCard: {
     width: 260,
     borderRadius: 20,
-    overflow: "hidden",
-    backgroundColor: "#FFFFFF",
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
     marginRight: 16,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOpacity: 0.07,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
   popularCover: {
-    width: "100%",
+    width: '100%',
     height: 120,
   },
   popularBody: {
@@ -631,17 +644,17 @@ const styles = StyleSheet.create({
   },
   popularName: {
     fontSize: 17,
-    fontWeight: "800",
-    color: "#111827",
+    fontWeight: '800',
+    color: '#111827',
   },
   popularSub: {
     marginTop: 4,
-    color: "#9CA3AF",
+    color: '#9CA3AF',
     fontSize: 13,
   },
   popularMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 8,
   },
 
@@ -651,107 +664,106 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   restaurantCover: {
-    width: "100%",
+    width: '100%',
     height: 180,
     borderRadius: 24,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: '#E5E7EB',
   },
   restaurantName: {
     marginTop: 12,
     fontSize: 20,
-    fontWeight: "800",
-    color: "#111827",
+    fontWeight: '800',
+    color: '#111827',
   },
   restaurantTags: {
     marginTop: 4,
     fontSize: 14,
-    color: "#9CA3AF",
+    color: '#9CA3AF',
   },
   restaurantMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 10,
   },
 
   // meta
   metaStar: {
     fontSize: 14,
-    fontWeight: "700",
-    color: "#F97316",
+    fontWeight: '700',
+    color: '#F97316',
     marginRight: 12,
   },
   metaDot: {
     marginHorizontal: 6,
-    color: "#9CA3AF",
+    color: '#9CA3AF',
   },
   metaText: {
     fontSize: 14,
-    color: "#111827",
+    color: '#111827',
     marginRight: 12,
   },
 
   /* ─── Promo Overlay ─── */
   promoOverlay: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.45)", // ทำพื้นหลังทึบลง
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: 'rgba(0,0,0,0.45)', // ทำพื้นหลังทึบลง
+    justifyContent: 'center',
+    alignItems: 'center',
     zIndex: 999,
   },
   promoCardWrapper: {
-    width: "80%",
-    aspectRatio: 3 / 4,      // ปรับตามสัดส่วนรูปจริงได้
-    alignItems: "center",
-    justifyContent: "center",
+    width: '80%',
+    aspectRatio: 3 / 4, // ปรับตามสัดส่วนรูปจริงได้
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   promoImage: {
-    width: "100%",
-    height: "100%",
+    width: '100%',
+    height: '100%',
     borderRadius: 24,
   },
   promoCloseBtn: {
-    position: "absolute",
+    position: 'absolute',
     top: 10,
     right: 10,
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#FFE194",     // ✅ สีเหลืองพาสเทลตามที่บอก
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
+    backgroundColor: '#FFE194', // ✅ สีเหลืองพาสเทลตามที่บอก
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 2,
-    elevation: 3,                   // ✅ เงาบาง ๆ สำหรับ Android
+    elevation: 3, // ✅ เงาบาง ๆ สำหรับ Android
   },
 
   promoCloseText: {
-    color: "#EF761A",                  // ✅ สีตัวกากบาทเข้มหน่อย
-    fontSize: 26,                   // ✅ ใหญ่พอดีวงกลม
+    color: '#EF761A', // ✅ สีตัวกากบาทเข้มหน่อย
+    fontSize: 26, // ✅ ใหญ่พอดีวงกลม
     lineHeight: 24,
-    fontWeight: "400",
-    marginTop: -1,                  // ✅ ปรับให้อยู่กลางเป๊ะ
+    fontWeight: '400',
+    marginTop: -1, // ✅ ปรับให้อยู่กลางเป๊ะ
   },
   promoGotItBtn: {
-    position: "absolute",
-    bottom: 50,             // เลื่อนให้ทับปุ่มในรูปคร่าว ๆ
-    alignSelf: "center",
+    position: 'absolute',
+    bottom: 50, // เลื่อนให้ทับปุ่มในรูปคร่าว ๆ
+    alignSelf: 'center',
     paddingHorizontal: 120,
     paddingVertical: 20,
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: "#FFFFFF",
-    backgroundColor: "transparent", // ให้เห็นปุ่มในรูปด้านล่าง
+    borderColor: '#FFFFFF',
+    backgroundColor: 'transparent', // ให้เห็นปุ่มในรูปด้านล่าง
   },
   promoGotItText: {
-    color: "#FFFFFF",
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: "700",
+    fontWeight: '700',
   },
-  
 });
