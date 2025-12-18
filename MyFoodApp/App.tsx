@@ -20,6 +20,8 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import ProfileSettingScreen from './src/screens/ProfileSettingScreen';
 import RegisterShopScreen from './src/screens/RegisterShopScreen';
 import MainAdminShopScreen from './src/screens/MainAdminShopScreen';
+import AdminNewFoodScreen from './src/screens/AdminNewFoodScreen';
+import AdminFoodEditScreen from './src/screens/AdminFoodEditScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -39,6 +41,8 @@ export type RootStackParamList = {
   ProfileSetting: { userId: number; user: any };
   RegisterShop: { userId: number };
   MainAdminShop: { userId: number; shopId?: number };
+  AdminNewFood: { shopId: number };
+  AdminFoodEdit: { menuItemId: number; shopId: number };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -120,6 +124,16 @@ const App = () => {
             name="MainAdminShop"
             component={MainAdminShopScreen}
             options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="AdminNewFood"
+            component={AdminNewFoodScreen}
+            options={{ title: 'เพิ่มเมนูใหม่', headerShown: true }}
+          />
+          <Stack.Screen
+            name="AdminFoodEdit"
+            component={AdminFoodEditScreen}
+            options={{ title: 'แก้ไขเมนู', headerShown: false }}
           />
         </Stack.Navigator>
       ) : (

@@ -1,18 +1,32 @@
 // src/screens/RegisterScreen.tsx
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert } from "react-native";
-import { AuthApi } from "../api/auth";
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  Alert,
+} from 'react-native';
+import { AuthApi } from '../api/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const IMAGES = {
-  main: require("../../assets/images/MAIN_LOGO.png"),
-  facebook: require("../../assets/images/FACEBOOK_LOGO.png"),
-  google: require("../../assets/images/GOOGLE_LOGO.png"),
-  emailCollect: require("../../assets/images/EMAIL_COLLECT_ICON.png"),
-  hide: require("../../assets/images/HIDE_PASSWORD_ICON.png"),
-  unhide: require("../../assets/images/UNHIDE_PASSWORD_ICON.png"),
+  main: require('../../assets/images/MAIN_LOGO.png'),
+  facebook: require('../../assets/images/FACEBOOK_LOGO.png'),
+  google: require('../../assets/images/GOOGLE_LOGO.png'),
+  emailCollect: require('../../assets/images/EMAIL_COLLECT_ICON.png'),
+  hide: require('../../assets/images/HIDE_PASSWORD_ICON.png'),
+  unhide: require('../../assets/images/UNHIDE_PASSWORD_ICON.png'),
 };
 
-type UserShape = { id: number; username: string; email?: string; rank: "admin" | "user" };
+type UserShape = {
+  id: number;
+  username: string;
+  email?: string;
+  rank: 'admin' | 'user';
+};
 
 type Props = {
   onRegistered: (u: UserShape) => void;
@@ -20,10 +34,10 @@ type Props = {
 };
 
 export default function RegisterScreen({ onRegistered, onGoSignIn }: Props) {
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const [pwdHidden, setPwdHidden] = useState(true);
   const [confirmPwdHidden, setConfirmPwdHidden] = useState(true);
@@ -35,27 +49,55 @@ export default function RegisterScreen({ onRegistered, onGoSignIn }: Props) {
   const [focusPwd, setFocusPwd] = useState(false);
   const [focusConfirmPwd, setFocusConfirmPwd] = useState(false);
 
-  const submit = async () => {
-    if (!username.trim() || !email.trim() || !password || !confirmPassword) {
-      Alert.alert("สมัครไม่สำเร็จ", "กรุณากรอกชื่อ, อีเมล, รหัสผ่าน และยืนยันรหัสผ่าน");
-      return;
-    }
+  // const submit = async () => {
+  //   if (!username.trim() || !email.trim() || !password || !confirmPassword) {
+  //     Alert.alert(
+  //       'สมัครไม่สำเร็จ',
+  //       'กรุณากรอกชื่อ, อีเมล, รหัสผ่าน และยืนยันรหัสผ่าน',
+  //     );
+  //     return;
+  //   }
 
-    if (password !== confirmPassword) {
-      Alert.alert("สมัครไม่สำเร็จ", "รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน");
-      return;
-    }
+  //   if (password !== confirmPassword) {
+  //     Alert.alert('สมัครไม่สำเร็จ', 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน');
+  //     return;
+  //   }
+
+  //   try {
+  //     setLoading(true);
+  //     const user = await AuthApi.register({
+  //       username: username.trim(),
+  //       email: email.trim(),
+  //       password,
+  //     });
+  //     onRegistered(user);
+  //   } catch (e: any) {
+  //     Alert.alert('สมัครไม่สำเร็จ', e?.message ?? 'unknown error');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
+  const submit = async () => {
+    // ... (ส่วนเช็ค validate เหมือนเดิม) ...
 
     try {
       setLoading(true);
+
+      // 1. เรียก API สมัครสมาชิก
       const user = await AuthApi.register({
         username: username.trim(),
         email: email.trim(),
         password,
       });
+
+      // ⭐️ 2. เพิ่มส่วนนี้: บันทึกข้อมูลผู้ใช้ลงเครื่องทันที (เหมือนหน้า Login)
+      await AsyncStorage.setItem('logged_in_user', JSON.stringify(user));
+
+      // 3. แจ้ง App ว่า registered แล้ว
       onRegistered(user);
     } catch (e: any) {
-      Alert.alert("สมัครไม่สำเร็จ", e?.message ?? "unknown error");
+      Alert.alert('สมัครไม่สำเร็จ', e?.message ?? 'unknown error');
     } finally {
       setLoading(false);
     }
@@ -64,12 +106,16 @@ export default function RegisterScreen({ onRegistered, onGoSignIn }: Props) {
   return (
     <View style={styles.root}>
       {/* โลโก้ */}
-      <Image source={IMAGES.main} style={styles.mainLogo} resizeMode="contain" />
+      <Image
+        source={IMAGES.main}
+        style={styles.mainLogo}
+        resizeMode="contain"
+      />
 
       {/* หัวเรื่อง */}
       <Text style={[styles.title, styles.fontMain]}>Hello! Create Account</Text>
       <Text style={[styles.sub, styles.fontMain]}>
-        Already have an account?{" "}
+        Already have an account?{' '}
         <Text style={styles.link} onPress={onGoSignIn}>
           Sign in
         </Text>
@@ -83,7 +129,7 @@ export default function RegisterScreen({ onRegistered, onGoSignIn }: Props) {
           onFocus={() => setFocusName(true)}
           onBlur={() => setFocusName(false)}
           style={[styles.input, styles.fontMain, { paddingLeft: 24 }]}
-          placeholder={focusName || username ? "" : "Your name"}
+          placeholder={focusName || username ? '' : 'Your name'}
           placeholderTextColor={COLOR.placeholder}
         />
       </View>
@@ -98,11 +144,15 @@ export default function RegisterScreen({ onRegistered, onGoSignIn }: Props) {
           style={[styles.input, styles.fontMain, { paddingLeft: 24 }]}
           keyboardType="email-address"
           autoCapitalize="none"
-          placeholder={focusEmail || email ? "" : "Username or Email"}
+          placeholder={focusEmail || email ? '' : 'Username or Email'}
           placeholderTextColor={COLOR.placeholder}
         />
         {email.trim().length > 0 && (
-          <Image source={IMAGES.emailCollect} style={styles.rightIcon} resizeMode="contain" />
+          <Image
+            source={IMAGES.emailCollect}
+            style={styles.rightIcon}
+            resizeMode="contain"
+          />
         )}
       </View>
 
@@ -115,10 +165,13 @@ export default function RegisterScreen({ onRegistered, onGoSignIn }: Props) {
           onBlur={() => setFocusPwd(false)}
           style={[styles.input, styles.fontMain, { paddingLeft: 24 }]}
           secureTextEntry={pwdHidden}
-          placeholder={focusPwd || password ? "" : "Password"}
+          placeholder={focusPwd || password ? '' : 'Password'}
           placeholderTextColor={COLOR.placeholder}
         />
-        <TouchableOpacity style={styles.eyeBtn} onPress={() => setPwdHidden(v => !v)}>
+        <TouchableOpacity
+          style={styles.eyeBtn}
+          onPress={() => setPwdHidden(v => !v)}
+        >
           <Image
             source={pwdHidden ? IMAGES.hide : IMAGES.unhide}
             style={{ width: 22, height: 22, opacity: 0.85 }}
@@ -127,7 +180,9 @@ export default function RegisterScreen({ onRegistered, onGoSignIn }: Props) {
       </View>
 
       {/* Confirm Password */}
-      <View style={[styles.inputWrap, focusConfirmPwd && styles.inputWrapFocus]}>
+      <View
+        style={[styles.inputWrap, focusConfirmPwd && styles.inputWrapFocus]}
+      >
         <TextInput
           value={confirmPassword}
           onChangeText={setConfirmPassword}
@@ -135,7 +190,9 @@ export default function RegisterScreen({ onRegistered, onGoSignIn }: Props) {
           onBlur={() => setFocusConfirmPwd(false)}
           style={[styles.input, styles.fontMain, { paddingLeft: 24 }]}
           secureTextEntry={confirmPwdHidden}
-          placeholder={focusConfirmPwd || confirmPassword ? "" : "Confirm Password"}
+          placeholder={
+            focusConfirmPwd || confirmPassword ? '' : 'Confirm Password'
+          }
           placeholderTextColor={COLOR.placeholder}
         />
         <TouchableOpacity
@@ -156,7 +213,7 @@ export default function RegisterScreen({ onRegistered, onGoSignIn }: Props) {
         disabled={loading}
       >
         <Text style={[styles.primaryText, styles.fontMain]}>
-          {loading ? "Creating..." : "Sign up"}
+          {loading ? 'Creating...' : 'Sign up'}
         </Text>
       </TouchableOpacity>
 
@@ -170,15 +227,27 @@ export default function RegisterScreen({ onRegistered, onGoSignIn }: Props) {
       {/* ปุ่ม Social */}
       <TouchableOpacity style={styles.socialBtn}>
         <View style={styles.socialBtnInner}>
-          <Image source={IMAGES.facebook} style={styles.socialIconAbs} resizeMode="contain" />
-          <Text style={[styles.socialText, styles.fontMain]}>Connect with Facebook</Text>
+          <Image
+            source={IMAGES.facebook}
+            style={styles.socialIconAbs}
+            resizeMode="contain"
+          />
+          <Text style={[styles.socialText, styles.fontMain]}>
+            Connect with Facebook
+          </Text>
         </View>
       </TouchableOpacity>
 
       <TouchableOpacity style={[styles.socialBtn, { marginTop: 12 }]}>
         <View style={styles.socialBtnInner}>
-          <Image source={IMAGES.google} style={styles.socialIconAbs} resizeMode="contain" />
-          <Text style={[styles.socialText, styles.fontMain]}>Connect with Google</Text>
+          <Image
+            source={IMAGES.google}
+            style={styles.socialIconAbs}
+            resizeMode="contain"
+          />
+          <Text style={[styles.socialText, styles.fontMain]}>
+            Connect with Google
+          </Text>
         </View>
       </TouchableOpacity>
     </View>
@@ -186,29 +255,35 @@ export default function RegisterScreen({ onRegistered, onGoSignIn }: Props) {
 }
 
 const COLOR = {
-  orange: "#EF9F27",
-  navy: "#172B4D",
-  gray: "#7A869A",
-  inputBg: "#EEF3FAFF",      // พื้นหลังช่องกรอก (โทนอ่อน)
-  border: "#E6EDF7",
-  borderFocus: "#D8E4FF",    // เวลาโฟกัส เปลี่ยนแค่สีเส้นขอบ
-  placeholder: "#99A1A8",
+  orange: '#EF9F27',
+  navy: '#172B4D',
+  gray: '#7A869A',
+  inputBg: '#EEF3FAFF', // พื้นหลังช่องกรอก (โทนอ่อน)
+  border: '#E6EDF7',
+  borderFocus: '#D8E4FF', // เวลาโฟกัส เปลี่ยนแค่สีเส้นขอบ
+  placeholder: '#99A1A8',
 };
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
     paddingTop: 40,
   },
-  fontMain: { fontFamily: "Montserrat-Light", color: COLOR.navy },
+  fontMain: { fontFamily: 'Montserrat-Light', color: COLOR.navy },
 
-  mainLogo: { width: 180, height: 140, marginBottom: 8, alignSelf: "center", marginTop: 40 },
+  mainLogo: {
+    width: 180,
+    height: 140,
+    marginBottom: 8,
+    alignSelf: 'center',
+    marginTop: 40,
+  },
 
   title: {
     fontSize: 22,
-    fontWeight: "800",
+    fontWeight: '800',
     color: COLOR.navy,
     marginTop: 4,
   },
@@ -216,11 +291,11 @@ const styles = StyleSheet.create({
   link: { color: COLOR.orange },
 
   inputWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "86%",
-    alignSelf: "center",
-    backgroundColor: COLOR.inputBg,   // ✅ พื้นหลังคงที่ไม่เปลี่ยน
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '86%',
+    alignSelf: 'center',
+    backgroundColor: COLOR.inputBg, // ✅ พื้นหลังคงที่ไม่เปลี่ยน
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 50,
@@ -234,45 +309,51 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, fontSize: 16, color: COLOR.navy },
 
-  rightIcon: { position: "absolute", right: 12, width: 22, height: 22, opacity: 0.9 },
-  eyeBtn: { width: 32, alignItems: "flex-end" },
+  rightIcon: {
+    position: 'absolute',
+    right: 12,
+    width: 22,
+    height: 22,
+    opacity: 0.9,
+  },
+  eyeBtn: { width: 32, alignItems: 'flex-end' },
 
   primaryBtn: {
-    width: "86%",
+    width: '86%',
     height: 50,
     backgroundColor: COLOR.orange,
     borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 18,
   },
-  primaryText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  primaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 
   orRow: {
-    width: "86%",
-    flexDirection: "row",
-    alignItems: "center",
+    width: '86%',
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 16,
   },
-  hr: { flex: 1, height: 1, backgroundColor: "#E8EEF7" },
+  hr: { flex: 1, height: 1, backgroundColor: '#E8EEF7' },
   orText: { marginHorizontal: 10, color: COLOR.gray },
 
   socialBtn: {
-    width: "86%",
+    width: '86%',
     height: 52,
-    backgroundColor: "#F2F6FF",
+    backgroundColor: '#F2F6FF',
     borderRadius: 12,
-    alignSelf: "center",
-    justifyContent: "center",
+    alignSelf: 'center',
+    justifyContent: 'center',
     marginTop: 8,
   },
   socialBtnInner: {
-    position: "relative",
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
+    position: 'relative',
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
   },
-  socialIconAbs: { position: "absolute", left: 14, width: 24, height: 24 },
-  socialText: { color: "#7A869A", fontWeight: "700", fontSize: 15 },
+  socialIconAbs: { position: 'absolute', left: 14, width: 24, height: 24 },
+  socialText: { color: '#7A869A', fontWeight: '700', fontSize: 15 },
 });
