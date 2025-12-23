@@ -1,5 +1,5 @@
 // src/screens/PaymentQrScreen.tsx
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,85 +8,112 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
-} from "react-native";
-import { launchImageLibrary } from "react-native-image-picker";
-import { SafeAreaView } from "react-native-safe-area-context";
-import api, { API_BASE } from "../api/client";
+  Modal,
+  ActivityIndicator,
+  Platform, // ✅ เพิ่ม import
+} from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import api from '../api/client';
 
-const PROMPTPAY_ID = "0827028815";
+const PROMPTPAY_ID = '081-234-5678';
 
 export default function PaymentQrScreen({ navigation, route }: any) {
-  const { amount, orderId, userId } = route.params;
+  const { amount, orderId } = route.params;
   const amountText = amount.toFixed(2);
   const qrUrl = `https://promptpay.io/${PROMPTPAY_ID}/${amountText}.png`;
-  
 
-  const [slipUri, setSlipUri] = useState<string | null>(null);
+  // 🔸 เปลี่ยน state เป็นเก็บ Object แทน string
+  const [slipImage, setSlipImage] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
-  // 🔸 ฟังก์ชันเลือกสลิปจาก Gallery
+  // 🔸 ฟังก์ชันเลือกสลิป
   const handleUploadSlip = async () => {
     const result = await launchImageLibrary({
-      mediaType: "photo",
-      quality: 0.9,
+      mediaType: 'photo',
+      quality: 0.8, // ลด quality นิดนึงเพื่อลดขนาดไฟล์ upload จะได้ไวขึ้น
     });
 
     if (result.didCancel) return;
 
-    const uri = result.assets?.[0]?.uri;
-    if (uri) {
-      setSlipUri(uri);
-      Alert.alert("สำเร็จ", "อัปโหลดสลิปเรียบร้อยแล้ว ✅");
+    if (result.assets && result.assets.length > 0) {
+      // ✅ เก็บทั้ง object
+      setSlipImage(result.assets[0]);
     }
   };
 
-  // 🔸 ฟังก์ชันยืนยันการชำระเงิน (หลังอัปโหลดสลิป)
+  // 🔸 ฟังก์ชันยืนยันการชำระเงิน
+  // 🔸 ฟังก์ชันยืนยันการชำระเงิน
   const handleConfirmPayment = async () => {
-    if (!slipUri) {
-      Alert.alert("แจ้งเตือน", "กรุณาอัปโหลดสลิปก่อน");
+    if (!slipImage) {
+      Alert.alert('แจ้งเตือน', 'กรุณาอัปโหลดสลิปก่อน');
       return;
     }
 
+    setLoading(true);
+
     try {
       const formData = new FormData();
-      const fileName = slipUri.split("/").pop() || "slip.jpg";
 
-      // ⚠️ ชื่อ field ต้องตรงกับ C# DTO: UploadSlipRequest { int? OrderId; IFormFile? SlipFile; }
-      formData.append("OrderId", String(orderId));
-      formData.append("SlipFile", {
-        uri: slipUri,
-        name: fileName,
-        type: "image/jpeg",
+      // ✅ Fix URI for Android (ฉบับปลอดภัย)
+      let localUri = slipImage.uri;
+
+      // เช็คว่าถ้าเป็น Android และไม่มี file:// และไม่ใช่ content:// ค่อยเติม
+      if (Platform.OS === 'android' && localUri) {
+        if (
+          !localUri.startsWith('file://') &&
+          !localUri.startsWith('content://')
+        ) {
+          localUri = 'file://' + localUri;
+        }
+      }
+
+      // ✅ Construct File Object
+      formData.append('SlipFile', {
+        uri: localUri,
+        name: slipImage.fileName || 'slip.jpg',
+        type: slipImage.type || 'image/jpeg',
       } as any);
 
-      // ถ้าใน client.ts ลบ default Content-Type แล้ว
-      // ตรงนี้ไม่ต้องใส่ header เลยก็ได้
-      const res = await api.post("/payments/upload-slip", formData, {
+      console.log('Sending FormData:', JSON.stringify(formData));
+
+      // ✅ ยิง API
+      await api.post(`/Orders/${orderId}/slip`, formData, {
         headers: {
-          "Content-Type": "multipart/form-data", // ถ้าใช้ interceptor แล้วจะไม่จำเป็น
+          // ⚠️ สำคัญ: ใส่ undefined เพื่อล้างค่า default json (ถ้ามี)
+          // ให้ Axios/Browser จัดการ boundary เอง
+          'Content-Type': 'multipart/form-data',
+        },
+        // เพิ่ม transformRequest เพื่อป้องกัน Axios แปลง formData เป็น JSON
+        transformRequest: (data, headers) => {
+          return data;
         },
       });
 
-      console.log("upload slip success:", res.data);
+      setLoading(false);
 
-      Alert.alert("ส่งหลักฐานเรียบร้อย", "ระบบได้รับสลิปของคุณแล้ว ❤️", [
+      Alert.alert('สำเร็จ', 'อัปโหลดสลิปเรียบร้อยแล้ว', [
         {
-          text: "ดูใบเสร็จ",
+          text: 'ตกลง',
           onPress: () =>
-            navigation.navigate("Bills", {
-              userId, // ✅ ส่งไปให้ BillsScreen โหลดรายการของผู้ใช้
-            }),
+            navigation.replace('NewBillDetail', { orderId: orderId }),
         },
       ]);
     } catch (err: any) {
-      console.log(
-        "upload slip error:",
-        JSON.stringify(err?.response?.data ?? err, null, 2)
-      );
-      Alert.alert("ผิดพลาด", "ไม่สามารถอัปโหลดสลิปได้ กรุณาลองใหม่");
+      setLoading(false);
+      console.log('Upload error:', err);
+
+      if (err.response) {
+        console.log('Error Data:', err.response.data);
+        // เช็คว่า Server ส่ง error อะไรมา
+        const serverMsg = JSON.stringify(err.response.data);
+        Alert.alert('Upload Failed', `Server says: ${serverMsg}`);
+      } else {
+        const msg = err.message || 'เกิดข้อผิดพลาดในการอัปโหลด';
+        Alert.alert('ผิดพลาด', msg);
+      }
     }
   };
-
-
 
   return (
     <SafeAreaView style={styles.container}>
@@ -95,7 +122,6 @@ export default function PaymentQrScreen({ navigation, route }: any) {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
-          activeOpacity={0.8}
         >
           <Text style={styles.backIcon}>❮</Text>
         </TouchableOpacity>
@@ -108,172 +134,164 @@ export default function PaymentQrScreen({ navigation, route }: any) {
         <View style={styles.card}>
           <Text style={styles.title}>สแกนเพื่อชำระเงิน</Text>
           <Text style={styles.amount}>ยอดชำระ ฿{amountText}</Text>
-
           <View style={styles.qrWrapper}>
-            <Image source={{ uri: qrUrl }} style={styles.qr} resizeMode="contain" />
+            <Image
+              source={{ uri: qrUrl }}
+              style={styles.qr}
+              resizeMode="contain"
+            />
           </View>
-
           <Text style={styles.note}>
-            📱 ใช้แอปธนาคารสแกน QR นี้เพื่อโอนเงินผ่าน PromptPay{`\n`}
-            หลังโอนเสร็จอย่าลืมอัปโหลดสลิปการโอนเงินด้านล่างนะ 💳
+            📱 สแกน QR เพื่อโอนเงิน{`\n`}และอัปโหลดสลิปด้านล่าง 💳
           </Text>
 
-          {/* ✅ ถ้ามีรูปสลิปแล้ว แสดงตัวอย่าง */}
-          {slipUri && (
+          {/* ✅ เปลี่ยนการเช็คเงื่อนไขแสดงรูป */}
+          {slipImage && slipImage.uri && (
             <View style={styles.slipPreviewCard}>
-              <Text style={styles.slipLabel}>สลิปที่อัปโหลด</Text>
-              <Image source={{ uri: slipUri }} style={styles.slipImage} />
+              <Text style={styles.slipLabel}>สลิปที่เลือก:</Text>
+              <Image source={{ uri: slipImage.uri }} style={styles.slipImage} />
             </View>
           )}
         </View>
 
-        {/* ปุ่มอัปโหลดสลิป */}
         <TouchableOpacity
           onPress={handleUploadSlip}
           style={styles.uploadButton}
-          activeOpacity={0.9}
         >
           <Text style={styles.uploadText}>
-            {slipUri ? "เปลี่ยนสลิปการโอนเงิน" : "อัปโหลดสลิปการโอนเงิน"}
+            {slipImage ? 'เลือกสลิปใหม่' : 'อัปโหลดสลิป'}
           </Text>
         </TouchableOpacity>
 
-        {/* ปุ่มยืนยัน (โชว์หลังอัปโหลดสลิปแล้ว) */}
-        {slipUri && (
+        {slipImage && (
           <TouchableOpacity
             onPress={handleConfirmPayment}
             style={styles.confirmButton}
-            activeOpacity={0.9}
           >
             <Text style={styles.confirmText}>ยืนยันการชำระเงิน</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
+
+      <Modal transparent={true} animationType="fade" visible={loading}>
+        <View style={styles.modalBackground}>
+          <View style={styles.activityIndicatorWrapper}>
+            <ActivityIndicator size="large" color="#FF7622" />
+            <Text style={styles.loadingText}>กำลังตรวจสอบ...</Text>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
+// ... styles คงเดิม ...
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
-  },
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#E5E7EB",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFFFF',
     elevation: 2,
   },
   backBtn: {
-    backgroundColor: "#F3F4F6",
     width: 36,
     height: 36,
     borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  backIcon: {
-    fontSize: 20,
-    color: "#374151",
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  content: {
-    padding: 20,
-    alignItems: "center",
-  },
+  backIcon: { fontSize: 20, color: '#374151' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
+  content: { padding: 20, alignItems: 'center' },
   card: {
-    width: "100%",
-    backgroundColor: "#FFFFFF",
+    width: '100%',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
     paddingVertical: 24,
     paddingHorizontal: 16,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
+    alignItems: 'center',
     elevation: 2,
     marginBottom: 20,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 8,
-  },
+  title: { fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 8 },
   amount: {
     fontSize: 18,
-    color: "#EF4444",
-    fontWeight: "600",
+    color: '#EF4444',
+    fontWeight: '600',
     marginBottom: 20,
   },
   qrWrapper: {
-    backgroundColor: "#FFF7ED",
+    backgroundColor: '#FFF7ED',
     borderWidth: 2,
-    borderColor: "#F97316",
+    borderColor: '#F97316',
     borderRadius: 16,
     padding: 10,
     marginBottom: 16,
   },
-  qr: {
-    width: 220,
-    height: 220,
-  },
+  qr: { width: 220, height: 220 },
   note: {
-    textAlign: "center",
-    color: "#6B7280",
+    textAlign: 'center',
+    color: '#6B7280',
     fontSize: 14,
     lineHeight: 20,
     marginTop: 8,
   },
   uploadButton: {
-    backgroundColor: "#EF4444",
+    backgroundColor: '#EF4444',
     paddingVertical: 14,
     borderRadius: 14,
-    alignItems: "center",
-    width: "100%",
+    alignItems: 'center',
+    width: '100%',
   },
-  uploadText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
+  uploadText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   confirmButton: {
-    backgroundColor: "#16A34A",
+    backgroundColor: '#16A34A',
     marginTop: 12,
     paddingVertical: 14,
     borderRadius: 14,
-    alignItems: "center",
-    width: "100%",
+    alignItems: 'center',
+    width: '100%',
   },
-  confirmText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  slipPreviewCard: {
-    marginTop: 16,
-    alignItems: "center",
-  },
+  confirmText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  slipPreviewCard: { marginTop: 16, alignItems: 'center' },
   slipLabel: {
     fontSize: 15,
-    color: "#374151",
-    fontWeight: "600",
+    color: '#374151',
+    fontWeight: '600',
     marginBottom: 6,
   },
   slipImage: {
-    width: 220,
-    height: 320,
+    width: 150,
+    height: 200,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: '#E5E7EB',
+    resizeMode: 'contain',
+  },
+  modalBackground: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  activityIndicatorWrapper: {
+    backgroundColor: '#FFFFFF',
+    height: 100,
+    width: 150,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#374151',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

@@ -1,4 +1,4 @@
-// App.tsx
+// // App.tsx
 import React, { useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -22,6 +22,11 @@ import RegisterShopScreen from './src/screens/RegisterShopScreen';
 import MainAdminShopScreen from './src/screens/MainAdminShopScreen';
 import AdminNewFoodScreen from './src/screens/AdminNewFoodScreen';
 import AdminFoodEditScreen from './src/screens/AdminFoodEditScreen';
+import FoodDetailScreenEdit from './src/screens/FoodDetailScreenEdit';
+import AdminCheckOrder from './src/screens/AdminCheckOrder';
+import NewBillDetailScreen from './src/screens/NewBillDetailScreen';
+import AdminEditShopProfileScreen from './src/screens/AdminEditShopProfileScreen';
+import AdminReportScreen from './src/screens/AdminReportScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -43,6 +48,16 @@ export type RootStackParamList = {
   MainAdminShop: { userId: number; shopId?: number };
   AdminNewFood: { shopId: number };
   AdminFoodEdit: { menuItemId: number; shopId: number };
+  FoodDetailEdit: {
+    cartItemId: number;
+    menuItemId: number;
+    initialQty: number;
+    initialNote?: string | null;
+  };
+  AdminCheckOrder: { orderId: number };
+  NewBillDetail: { orderId: number };
+  AdminEditShopProfile: { shopId: number };
+  AdminReport: { shopId: number };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -106,6 +121,12 @@ const App = () => {
             component={BillDetailScreen}
             options={{ headerShown: false }}
           />
+          <Stack.Screen
+            name="NewBillDetail"
+            component={NewBillDetailScreen}
+            options={{ headerShown: false }}
+          />
+
           <Stack.Screen name="Profile" options={{ headerShown: false }}>
             {props => <ProfileScreen {...props} onLogout={handleLogout} />}
           </Stack.Screen>
@@ -124,6 +145,7 @@ const App = () => {
             name="MainAdminShop"
             component={MainAdminShopScreen}
             options={{ headerShown: false }}
+            initialParams={{ userId: user.id, shopId: 1 }}
           />
           <Stack.Screen
             name="AdminNewFood"
@@ -134,6 +156,26 @@ const App = () => {
             name="AdminFoodEdit"
             component={AdminFoodEditScreen}
             options={{ title: 'แก้ไขเมนู', headerShown: false }}
+          />
+          <Stack.Screen
+            name="FoodDetailEdit"
+            component={FoodDetailScreenEdit}
+            options={{ title: 'แก้ไขรายการ' }}
+          />
+          <Stack.Screen
+            name="AdminCheckOrder"
+            component={AdminCheckOrder}
+            options={{ headerShown: false }} // ✅ Added screen component
+          />
+          <Stack.Screen
+            name="AdminEditShopProfile" // ✅ เปลี่ยนชื่อ Route
+            component={AdminEditShopProfileScreen} // ✅ ใช้ Component ใหม่
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="AdminReport"
+            component={AdminReportScreen}
+            options={{ headerShown: false }}
           />
         </Stack.Navigator>
       ) : (
@@ -150,7 +192,6 @@ const App = () => {
                 {...props}
                 onLoggedIn={(u: any) => setUser(u)}
                 onGoSignUp={() => props.navigation.navigate('Register')}
-                // 🟢 เพิ่มบรรทัดนี้ เพื่อให้ปุ่ม "Forgot Password" ทำงาน
                 onGoForgotPassword={() =>
                   props.navigation.navigate('ForgotPassword')
                 }

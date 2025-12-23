@@ -90,7 +90,13 @@ export default function AdminNewFoodScreen({ route, navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.cancelText}>Cancel</Text>
+        </TouchableOpacity>
+
         <Text style={styles.headerTitle}>Add New Item</Text>
+
+        <View style={{ width: 60 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -181,14 +187,22 @@ export default function AdminNewFoodScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    height: 56,
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    marginTop: 30,
   },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#1E293B' },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
   content: { padding: 24 },
   imageUploader: {
     width: '100%',
@@ -242,5 +256,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     letterSpacing: 1,
+  },
+  backBtn: {
+    width: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelText: {
+    width: 60, // 🔥 สำคัญมาก
+    fontSize: 16,
+    color: '#FF7622',
   },
 });

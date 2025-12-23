@@ -1,3 +1,4 @@
+// // src/screens/FoodDetailScreenEdit.tsx
 // import React, { useEffect, useMemo, useState } from 'react';
 // import {
 //   View,
@@ -8,8 +9,8 @@
 //   TouchableOpacity,
 //   ActivityIndicator,
 //   Alert,
+//   TextInput,
 // } from 'react-native';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
 // import api from '../api/client';
 
 // // ---------- types ----------
@@ -31,13 +32,13 @@
 
 // type MenuItemDetail = {
 //   id: number;
-//   shopId?: number; // Supports camelCase
-//   shop_id?: number; // Supports snake_case
+//   shopId?: number;
+//   shop_id?: number;
 //   name: string;
 //   description?: string | null;
 //   price: number;
 //   imageUrl?: string | null;
-//   image_url?: string | null; // Supports snake_case
+//   image_url?: string | null;
 //   optionGroups: MenuOptionGroup[];
 // };
 
@@ -46,15 +47,25 @@
 //   navigation: any;
 // };
 
-// export default function FoodDetailScreen({ route, navigation }: Props) {
-//   const { menuItemId, shop } = route.params;
+// export default function FoodDetailScreenEdit({ route, navigation }: Props) {
+//   // 🟢 รับค่า Params ที่ส่งมาจาก CartScreen
+//   const {
+//     cartItemId, // ID ของรายการในตะกร้า (ใช้สำหรับ Update)
+//     menuItemId, // ID เมนู (ใช้ดึงรูป/ราคา)
+//     initialQty, // จำนวนเดิม
+//     initialNote, // หมายเหตุเดิม
+//     // initialOptionIds // (ถ้าคุณส่ง list ของ option id มาด้วยในอนาคต สามารถเอามา set selected ได้)
+//   } = route.params;
 
 //   const [detail, setDetail] = useState<MenuItemDetail | null>(null);
 //   const [selected, setSelected] = useState<Record<number, number[]>>({});
-//   const [qty, setQty] = useState(1);
+
+//   // 🟢 ตั้งค่าเริ่มต้นจากข้อมูลเดิม
+//   const [qty, setQty] = useState<number>(initialQty || 1);
+//   const [specialRequest, setSpecialRequest] = useState(initialNote || '');
+
 //   const [loading, setLoading] = useState(true);
 //   const [error, setError] = useState<string | null>(null);
-//   const [userId, setUserId] = useState<number | null>(null);
 //   const [submitting, setSubmitting] = useState(false);
 
 //   const BASE_URL = useMemo(
@@ -65,38 +76,22 @@
 //     [],
 //   );
 
-//   useEffect(() => {
-//     (async () => {
-//       try {
-//         const stored = await AsyncStorage.getItem('logged_in_user');
-//         if (stored) {
-//           const u = JSON.parse(stored);
-//           setUserId(u.id);
-//         }
-//       } catch (err) {
-//         console.warn('Failed to load logged_in_user', err);
-//       }
-//     })();
-//   }, []);
-
+//   // โหลดข้อมูลเมนู (เพื่อให้เห็นรูป, ราคา และตัวเลือก)
 //   useEffect(() => {
 //     let mounted = true;
-
 //     (async () => {
 //       try {
 //         setLoading(true);
-//         console.log(`[DEBUG] Fetching menu ID: ${menuItemId}`);
-
 //         const res = await api.get<MenuItemDetail>(
 //           `/MenuItems/${menuItemId}/detail`,
 //         );
 
 //         if (!mounted) return;
-
-//         console.log('[DEBUG] API Response:', JSON.stringify(res.data, null, 2));
-
 //         setDetail(res.data);
 
+//         // ตั้งค่าตัวเลือกเริ่มต้น (Default Options)
+//         // 💡 หมายเหตุ: ถ้าอยากให้ติ๊กถูกตัวเลือกเดิมที่ลูกค้าเคยเลือกไว้
+//         // ต้องส่ง `initialOptionIds` มาจาก CartScreen แล้วเขียน Logic เช็คตรงนี้เพิ่ม
 //         const init: Record<number, number[]> = {};
 //         if (res.data.optionGroups) {
 //           res.data.optionGroups.forEach(g => {
@@ -105,13 +100,8 @@
 //         }
 //         setSelected(init);
 //       } catch (e: any) {
-//         console.error('[DEBUG] Fetch Error:', e);
 //         if (mounted) {
-//           setError(
-//             e?.response?.data?.toString() ??
-//               e?.message ??
-//               'เกิดข้อผิดพลาดในการโหลดเมนู',
-//           );
+//           setError(e?.message ?? 'โหลดข้อมูลไม่สำเร็จ');
 //         }
 //       } finally {
 //         if (mounted) setLoading(false);
@@ -136,59 +126,28 @@
 
 //   const total = calcTotal();
 
-//   // ⭐️ Updated Image Logic: Combines robustness from Admin & ShopDetail screens
+//   // Logic การแสดงรูปภาพ (เหมือนไฟล์เดิม)
 //   const menuImgSource = useMemo(() => {
-//     // 1. Get raw path from API response
 //     let rawPath = detail?.imageUrl || detail?.image_url;
 //     const sId = detail?.shopId || detail?.shop_id;
 
-//     // 2. If no path exists, try manual construction (Like AdminFoodListScreen)
-//     // Assumption: Files are stored as /shop_uploads/menu/{shopId}/{shopId}_{menuItemId}.png
 //     if (!rawPath && sId && detail?.id) {
-//       // Note: This assumes .png. Adjust extension if needed.
 //       rawPath = `/shop_uploads/menu/${sId}/${sId}_${detail.id}.png`;
-//       console.log('[DEBUG] Constructed manual path:', rawPath);
 //     }
-
 //     if (!rawPath) return undefined;
+//     if (rawPath.startsWith('http')) return { uri: rawPath };
 
-//     // 3. If it's already a full URL, return it
-//     if (rawPath.startsWith('http')) {
-//       return { uri: rawPath };
-//     }
-
-//     // 4. Normalize backslashes
 //     let path = rawPath.replace(/\\/g, '/');
-
-//     // 5. Intelligent Path Construction
 //     if (!path.includes('/')) {
-//       // Case: Just a filename (e.g., "burger.jpg")
-
-//       // Option A: Try the Admin screen's structure
-//       if (sId) {
-//         path = `/shop_uploads/menu/${sId}/${path}`;
-//       }
-//       // Option B: Fallback to ShopDetailScreen's structure (menuitems folder)
-//       else {
-//         path = `/shop_uploads/menuitems/${path}`;
-//       }
+//       if (sId) path = `/shop_uploads/menu/${sId}/${path}`;
+//       else path = `/shop_uploads/menuitems/${path}`;
 //     } else {
-//       // Case: Partial path exists (e.g., "menu/burger.jpg")
 //       if (!path.startsWith('/')) path = '/' + path;
-
-//       // Ensure /shop_uploads prefix exists
-//       if (!path.includes('/shop_uploads')) {
-//         path = '/shop_uploads' + path;
-//       }
+//       if (!path.includes('/shop_uploads')) path = '/shop_uploads' + path;
 //     }
 
-//     // 6. Construct final URL
 //     const host = BASE_URL.replace(/\/api\/?$/, '');
-//     const finalUrl = `${host}${path}`;
-
-//     console.log('[DEBUG] Final Image URL:', finalUrl);
-
-//     return { uri: finalUrl };
+//     return { uri: `${host}${path}` };
 //   }, [detail, BASE_URL]);
 
 //   const toggleOption = (group: MenuOptionGroup, option: MenuOption) => {
@@ -202,34 +161,31 @@
 //     });
 //   };
 
-//   const handleAddToCart = async () => {
+//   // 🟢 ฟังก์ชันบันทึกการแก้ไข (Update)
+//   const handleUpdateCart = async () => {
 //     if (!detail) return;
-//     if (!userId) {
-//       Alert.alert('แจ้งเตือน', 'กรุณาเข้าสู่ระบบก่อนเพิ่มสินค้าลงตะกร้า');
-//       return;
-//     }
 
-//     const optionsPayload = (detail.optionGroups || []).flatMap(g => {
-//       const ids = selected[g.id] ?? [];
-//       return g.options
-//         .filter(o => ids.includes(o.id))
-//         .map(o => ({
-//           optionName: o.name,
-//           extraPrice: o.extraPrice,
-//         }));
+//     // รวบรวม Option IDs ที่ถูกเลือก
+//     const selectedOptionIds = (detail.optionGroups || []).flatMap(g => {
+//       return selected[g.id] ?? [];
 //     });
 
 //     try {
 //       setSubmitting(true);
-//       await api.post(`/Cart/${userId}/items`, {
-//         menuItemId: detail.id,
-//         qty,
-//         options: optionsPayload,
+
+//       // ยิง PUT ไปอัปเดต
+//       await api.put(`/Cart/update-item/${cartItemId}`, {
+//         quantity: qty,
+//         specialRequest: specialRequest.trim() || null,
+//         optionIds: selectedOptionIds, // ส่ง ID ของตัวเลือกใหม่ไปแทนที่ของเดิม
 //       });
-//       Alert.alert('สำเร็จ', 'เพิ่มสินค้าในตะกร้าแล้ว');
+
+//       Alert.alert('สำเร็จ', 'บันทึกการแก้ไขเรียบร้อย', [
+//         { text: 'OK', onPress: () => navigation.goBack() },
+//       ]);
 //     } catch (err: any) {
-//       console.log('add to cart error', err?.response?.data ?? err);
-//       Alert.alert('ผิดพลาด', 'ไม่สามารถเพิ่มลงตะกร้าได้');
+//       console.log('update cart error', err?.response?.data ?? err);
+//       Alert.alert('ผิดพลาด', 'ไม่สามารถแก้ไขรายการได้');
 //     } finally {
 //       setSubmitting(false);
 //     }
@@ -238,11 +194,7 @@
 //   if (loading || !detail) {
 //     return (
 //       <View style={styles.center}>
-//         {loading ? (
-//           <ActivityIndicator size="large" />
-//         ) : (
-//           <Text>{error ?? 'ไม่พบข้อมูลเมนู'}</Text>
-//         )}
+//         {loading ? <ActivityIndicator size="large" /> : <Text>{error}</Text>}
 //       </View>
 //     );
 //   }
@@ -250,14 +202,9 @@
 //   return (
 //     <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
 //       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+//         {/* ส่วนแสดงรูปภาพ */}
 //         {menuImgSource ? (
-//           <Image
-//             source={menuImgSource}
-//             style={styles.heroImage}
-//             onError={e =>
-//               console.log('[DEBUG] Image Load Error:', e.nativeEvent.error)
-//             }
-//           />
+//           <Image source={menuImgSource} style={styles.heroImage} />
 //         ) : (
 //           <View
 //             style={[
@@ -275,19 +222,19 @@
 
 //         <View style={styles.infoCard}>
 //           <Text style={styles.foodName}>{detail.name}</Text>
-//           {detail.description ? (
+//           {detail.description && (
 //             <Text style={styles.foodDesc}>{detail.description}</Text>
-//           ) : null}
-//           <Text style={styles.foodPrice}>
-//             เริ่มต้น ฿ {detail.price.toFixed(2)}
-//           </Text>
-
-//           {shop?.name && (
-//             <Text style={styles.shopName}>จากร้าน {shop.name}</Text>
 //           )}
+//           <Text style={styles.foodPrice}>
+//             ราคาต่อชิ้น ฿ {detail.price.toFixed(2)}
+//           </Text>
+//           <Text style={{ color: '#F97316', fontWeight: 'bold', marginTop: 5 }}>
+//             [โหมดแก้ไขรายการ]
+//           </Text>
 //         </View>
 
 //         <View style={{ paddingHorizontal: 16, marginTop: 24 }}>
+//           {/* ส่วนตัวเลือก (Options) */}
 //           {(detail.optionGroups || []).map(g => (
 //             <View key={g.id} style={{ marginBottom: 16 }}>
 //               <Text style={styles.sectionHeader}>
@@ -298,7 +245,6 @@
 //                   </Text>
 //                 )}
 //               </Text>
-
 //               {g.options.map(o => {
 //                 const isSelected = (selected[g.id] ?? []).includes(o.id);
 //                 return (
@@ -307,8 +253,8 @@
 //                     style={[
 //                       styles.optionRow,
 //                       {
-//                         borderColor: isSelected ? '#1BAF5D' : '#E5E7EB',
-//                         backgroundColor: isSelected ? '#ECFDF3' : '#FFFFFF',
+//                         borderColor: isSelected ? '#F97316' : '#E5E7EB', // เปลี่ยนสีธีมเป็นส้มตอนแก้ไข
+//                         backgroundColor: isSelected ? '#FFF7ED' : '#FFFFFF',
 //                       },
 //                     ]}
 //                     activeOpacity={0.8}
@@ -327,25 +273,45 @@
 //                     <View
 //                       style={[
 //                         styles.radioOuter,
-//                         isSelected && styles.radioOuterActive,
+//                         isSelected && { borderColor: '#F97316' },
 //                       ]}
 //                     >
-//                       {isSelected && <View style={styles.radioInner} />}
+//                       {isSelected && (
+//                         <View
+//                           style={[
+//                             styles.radioInner,
+//                             { backgroundColor: '#F97316' },
+//                           ]}
+//                         />
+//                       )}
 //                     </View>
 //                   </TouchableOpacity>
 //                 );
 //               })}
 //             </View>
 //           ))}
+
+//           {/* ส่วนกรอกหมายเหตุ */}
+//           <View style={{ marginBottom: 24, marginTop: 8 }}>
+//             <Text style={styles.sectionHeader}>หมายเหตุถึงร้าน (แก้ไข)</Text>
+//             <TextInput
+//               style={styles.noteInput}
+//               placeholder="เช่น ไม่ใส่ผัก, ขอช้อนส้อม..."
+//               placeholderTextColor="#9CA3AF"
+//               multiline
+//               value={specialRequest}
+//               onChangeText={setSpecialRequest}
+//             />
+//           </View>
 //         </View>
 //       </ScrollView>
 
+//       {/* Bottom Bar */}
 //       <View style={styles.bottomBar}>
 //         <View style={styles.qtyRow}>
 //           <TouchableOpacity
 //             onPress={() => setQty(q => Math.max(1, q - 1))}
 //             style={styles.qtyBtn}
-//             disabled={qty <= 1}
 //           >
 //             <Text style={styles.qtyBtnText}>-</Text>
 //           </TouchableOpacity>
@@ -359,14 +325,14 @@
 //         </View>
 
 //         <TouchableOpacity
-//           style={[styles.addBtn, submitting && { opacity: 0.6 }]}
-//           onPress={handleAddToCart}
+//           style={[styles.saveBtn, submitting && { opacity: 0.6 }]}
+//           onPress={handleUpdateCart}
 //           disabled={submitting}
 //         >
 //           <Text style={styles.addBtnText}>
 //             {submitting
-//               ? 'กำลังเพิ่ม...'
-//               : `เพิ่มลงตะกร้า • ฿ ${total.toFixed(2)}`}
+//               ? 'กำลังบันทึก...'
+//               : `บันทึกการแก้ไข • ฿ ${total.toFixed(2)}`}
 //           </Text>
 //         </TouchableOpacity>
 //       </View>
@@ -376,7 +342,7 @@
 //         onPress={() => navigation.goBack()}
 //       >
 //         <Text style={{ color: '#172B4D', fontWeight: '700', fontSize: 16 }}>
-//           ‹ Back
+//           ‹ ยกเลิก
 //         </Text>
 //       </TouchableOpacity>
 //     </View>
@@ -385,11 +351,7 @@
 
 // const styles = StyleSheet.create({
 //   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-//   heroImage: {
-//     width: '100%',
-//     height: 220,
-//     backgroundColor: '#ccc',
-//   },
+//   heroImage: { width: '100%', height: 220, backgroundColor: '#ccc' },
 //   infoCard: {
 //     backgroundColor: '#fff',
 //     borderTopLeftRadius: 24,
@@ -404,25 +366,13 @@
 //     shadowOffset: { width: 0, height: -2 },
 //     elevation: 4,
 //   },
-//   foodName: {
-//     fontSize: 20,
-//     fontWeight: '800',
-//     color: '#172B4D',
-//   },
-//   foodDesc: {
-//     marginTop: 4,
-//     color: '#6B7280',
-//   },
+//   foodName: { fontSize: 20, fontWeight: '800', color: '#172B4D' },
+//   foodDesc: { marginTop: 4, color: '#6B7280' },
 //   foodPrice: {
 //     marginTop: 8,
 //     fontSize: 18,
 //     fontWeight: '700',
 //     color: '#172B4D',
-//   },
-//   shopName: {
-//     marginTop: 4,
-//     fontSize: 13,
-//     color: '#7B8AA3',
 //   },
 //   sectionHeader: {
 //     fontSize: 16,
@@ -440,16 +390,8 @@
 //     alignItems: 'center',
 //     marginBottom: 8,
 //   },
-//   optionName: {
-//     fontSize: 14,
-//     fontWeight: '600',
-//     color: '#111827',
-//   },
-//   optionPrice: {
-//     marginTop: 2,
-//     fontSize: 13,
-//     color: '#6B7280',
-//   },
+//   optionName: { fontSize: 14, fontWeight: '600', color: '#111827' },
+//   optionPrice: { marginTop: 2, fontSize: 13, color: '#6B7280' },
 //   radioOuter: {
 //     width: 20,
 //     height: 20,
@@ -459,14 +401,22 @@
 //     alignItems: 'center',
 //     justifyContent: 'center',
 //   },
-//   radioOuterActive: {
-//     borderColor: '#1BAF5D',
-//   },
 //   radioInner: {
 //     width: 10,
 //     height: 10,
 //     borderRadius: 999,
 //     backgroundColor: '#1BAF5D',
+//   },
+//   noteInput: {
+//     borderWidth: 1,
+//     borderColor: '#E5E7EB',
+//     borderRadius: 12,
+//     padding: 12,
+//     minHeight: 80,
+//     textAlignVertical: 'top',
+//     backgroundColor: '#F9FAFB',
+//     fontSize: 14,
+//     color: '#111827',
 //   },
 //   bottomBar: {
 //     position: 'absolute',
@@ -480,11 +430,7 @@
 //     borderTopWidth: 1,
 //     borderTopColor: '#E5E7EB',
 //   },
-//   qtyRow: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     marginRight: 12,
-//   },
+//   qtyRow: { flexDirection: 'row', alignItems: 'center', marginRight: 12 },
 //   qtyBtn: {
 //     width: 32,
 //     height: 32,
@@ -494,11 +440,7 @@
 //     alignItems: 'center',
 //     justifyContent: 'center',
 //   },
-//   qtyBtnText: {
-//     fontSize: 18,
-//     fontWeight: '700',
-//     color: '#111827',
-//   },
+//   qtyBtnText: { fontSize: 18, fontWeight: '700', color: '#111827' },
 //   qtyText: {
 //     minWidth: 32,
 //     textAlign: 'center',
@@ -506,26 +448,18 @@
 //     fontWeight: '700',
 //     color: '#111827',
 //   },
-//   addBtn: {
+//   saveBtn: {
 //     flex: 1,
-//     backgroundColor: '#1BAF5D',
+//     backgroundColor: '#F97316', // สีส้มสำหรับการแก้ไข
 //     borderRadius: 999,
 //     paddingVertical: 12,
 //     alignItems: 'center',
 //     justifyContent: 'center',
 //   },
-//   addBtnText: {
-//     color: '#FFFFFF',
-//     fontSize: 16,
-//     fontWeight: '700',
-//   },
-//   backBtn: {
-//     position: 'absolute',
-//     top: 40,
-//     left: 16,
-//     padding: 4,
-//   },
+//   addBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+//   backBtn: { position: 'absolute', top: 40, left: 16, padding: 4 },
 // });
+// src/screens/FoodDetailScreenEdit.tsx
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
@@ -536,9 +470,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  TextInput, // 👈 เพิ่ม TextInput
+  TextInput,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/client';
 
 // ---------- types ----------
@@ -560,13 +493,13 @@ type MenuOptionGroup = {
 
 type MenuItemDetail = {
   id: number;
-  shopId?: number; // Supports camelCase
-  shop_id?: number; // Supports snake_case
+  shopId?: number;
+  shop_id?: number;
   name: string;
   description?: string | null;
   price: number;
   imageUrl?: string | null;
-  image_url?: string | null; // Supports snake_case
+  image_url?: string | null;
   optionGroups: MenuOptionGroup[];
 };
 
@@ -575,19 +508,26 @@ type Props = {
   navigation: any;
 };
 
-export default function FoodDetailScreen({ route, navigation }: Props) {
-  const { menuItemId, shop } = route.params;
+export default function FoodDetailScreenEdit({ route, navigation }: Props) {
+  // 🟢 รับค่า Params ที่ส่งมาจาก CartScreen
+  const {
+    cartItemId, // ID ของรายการในตะกร้า (ใช้สำหรับ Update)
+    menuItemId, // ID เมนู (ใช้ดึงรูป/ราคา)
+    initialQty, // จำนวนเดิม
+    initialNote, // หมายเหตุเดิม
+    initialOptionIds = [], // 🟢 รับรายการ Option ID เดิมมาด้วย (ใส่ค่า default เป็น [] กัน error)
+  } = route.params;
 
   const [detail, setDetail] = useState<MenuItemDetail | null>(null);
   const [selected, setSelected] = useState<Record<number, number[]>>({});
-  const [qty, setQty] = useState(1);
+
+  // 🟢 ตั้งค่าเริ่มต้นจากข้อมูลเดิม
+  const [qty, setQty] = useState<number>(initialQty || 1);
+  const [specialRequest, setSpecialRequest] = useState(initialNote || '');
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userId, setUserId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  // 🟢 1. เพิ่ม State เก็บหมายเหตุ
-  const [specialRequest, setSpecialRequest] = useState('');
 
   const BASE_URL = useMemo(
     () =>
@@ -597,53 +537,43 @@ export default function FoodDetailScreen({ route, navigation }: Props) {
     [],
   );
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const stored = await AsyncStorage.getItem('logged_in_user');
-        if (stored) {
-          const u = JSON.parse(stored);
-          setUserId(u.id);
-        }
-      } catch (err) {
-        console.warn('Failed to load logged_in_user', err);
-      }
-    })();
-  }, []);
-
+  // โหลดข้อมูลเมนู (เพื่อให้เห็นรูป, ราคา และตัวเลือก)
   useEffect(() => {
     let mounted = true;
-
     (async () => {
       try {
         setLoading(true);
-        console.log(`[DEBUG] Fetching menu ID: ${menuItemId}`);
-
+        // ดึงข้อมูล Master Data ของเมนูนั้นๆ
         const res = await api.get<MenuItemDetail>(
           `/MenuItems/${menuItemId}/detail`,
         );
 
         if (!mounted) return;
-
-        console.log('[DEBUG] API Response:', JSON.stringify(res.data, null, 2));
-
         setDetail(res.data);
 
+        // 🟢 Logic: ตั้งค่าตัวเลือกเริ่มต้น (Pre-fill Options)
         const init: Record<number, number[]> = {};
+
         if (res.data.optionGroups) {
           res.data.optionGroups.forEach(g => {
-            init[g.id] = g.options.filter(o => o.isDefault).map(o => o.id);
+            // 1. ลองหาว่าในกลุ่มนี้ มีตัวเลือกไหนที่ตรงกับ initialOptionIds บ้าง
+            const userHistoryOptions = g.options
+              .filter(o => initialOptionIds.includes(o.id))
+              .map(o => o.id);
+
+            if (userHistoryOptions.length > 0) {
+              // ✅ เจอ: ใช้ค่าเดิมที่ลูกค้าเคยเลือก
+              init[g.id] = userHistoryOptions;
+            } else {
+              // ❌ ไม่เจอ: ใช้ค่า Default ของร้าน (เช่น บังคับเลือกอันแรก)
+              init[g.id] = g.options.filter(o => o.isDefault).map(o => o.id);
+            }
           });
         }
         setSelected(init);
       } catch (e: any) {
-        console.error('[DEBUG] Fetch Error:', e);
         if (mounted) {
-          setError(
-            e?.response?.data?.toString() ??
-              e?.message ??
-              'เกิดข้อผิดพลาดในการโหลดเมนู',
-          );
+          setError(e?.message ?? 'โหลดข้อมูลไม่สำเร็จ');
         }
       } finally {
         if (mounted) setLoading(false);
@@ -653,7 +583,7 @@ export default function FoodDetailScreen({ route, navigation }: Props) {
     return () => {
       mounted = false;
     };
-  }, [menuItemId]);
+  }, [menuItemId, initialOptionIds]); // 🟢 ใส่ dependency ให้ครบ
 
   const calcTotal = () => {
     if (!detail) return 0;
@@ -668,59 +598,28 @@ export default function FoodDetailScreen({ route, navigation }: Props) {
 
   const total = calcTotal();
 
-  // ⭐️ Updated Image Logic: Combines robustness from Admin & ShopDetail screens
+  // Logic การแสดงรูปภาพ
   const menuImgSource = useMemo(() => {
-    // 1. Get raw path from API response
     let rawPath = detail?.imageUrl || detail?.image_url;
     const sId = detail?.shopId || detail?.shop_id;
 
-    // 2. If no path exists, try manual construction (Like AdminFoodListScreen)
-    // Assumption: Files are stored as /shop_uploads/menu/{shopId}/{shopId}_{menuItemId}.png
     if (!rawPath && sId && detail?.id) {
-      // Note: This assumes .png. Adjust extension if needed.
       rawPath = `/shop_uploads/menu/${sId}/${sId}_${detail.id}.png`;
-      console.log('[DEBUG] Constructed manual path:', rawPath);
     }
-
     if (!rawPath) return undefined;
+    if (rawPath.startsWith('http')) return { uri: rawPath };
 
-    // 3. If it's already a full URL, return it
-    if (rawPath.startsWith('http')) {
-      return { uri: rawPath };
-    }
-
-    // 4. Normalize backslashes
     let path = rawPath.replace(/\\/g, '/');
-
-    // 5. Intelligent Path Construction
     if (!path.includes('/')) {
-      // Case: Just a filename (e.g., "burger.jpg")
-
-      // Option A: Try the Admin screen's structure
-      if (sId) {
-        path = `/shop_uploads/menu/${sId}/${path}`;
-      }
-      // Option B: Fallback to ShopDetailScreen's structure (menuitems folder)
-      else {
-        path = `/shop_uploads/menuitems/${path}`;
-      }
+      if (sId) path = `/shop_uploads/menu/${sId}/${path}`;
+      else path = `/shop_uploads/menuitems/${path}`;
     } else {
-      // Case: Partial path exists (e.g., "menu/burger.jpg")
       if (!path.startsWith('/')) path = '/' + path;
-
-      // Ensure /shop_uploads prefix exists
-      if (!path.includes('/shop_uploads')) {
-        path = '/shop_uploads' + path;
-      }
+      if (!path.includes('/shop_uploads')) path = '/shop_uploads' + path;
     }
 
-    // 6. Construct final URL
     const host = BASE_URL.replace(/\/api\/?$/, '');
-    const finalUrl = `${host}${path}`;
-
-    console.log('[DEBUG] Final Image URL:', finalUrl);
-
-    return { uri: finalUrl };
+    return { uri: `${host}${path}` };
   }, [detail, BASE_URL]);
 
   const toggleOption = (group: MenuOptionGroup, option: MenuOption) => {
@@ -734,39 +633,31 @@ export default function FoodDetailScreen({ route, navigation }: Props) {
     });
   };
 
-  const handleAddToCart = async () => {
+  // 🟢 ฟังก์ชันบันทึกการแก้ไข (Update)
+  const handleUpdateCart = async () => {
     if (!detail) return;
-    if (!userId) {
-      Alert.alert('แจ้งเตือน', 'กรุณาเข้าสู่ระบบก่อนเพิ่มสินค้าลงตะกร้า');
-      return;
-    }
 
-    const optionsPayload = (detail.optionGroups || []).flatMap(g => {
-      const ids = selected[g.id] ?? [];
-      return g.options
-        .filter(o => ids.includes(o.id))
-        .map(o => ({
-          optionName: o.name,
-          extraPrice: o.extraPrice,
-          optionId: o.id, // 🟢 ส่ง ID ไปด้วยเผื่อ Backend ต้องใช้
-        }));
+    // รวบรวม Option IDs ที่ถูกเลือก
+    const selectedOptionIds = (detail.optionGroups || []).flatMap(g => {
+      return selected[g.id] ?? [];
     });
 
     try {
       setSubmitting(true);
-      await api.post(`/Cart/${userId}/items`, {
-        menuItemId: detail.id,
-        qty,
-        options: optionsPayload,
-        // 🟢 2. ส่งค่าหมายเหตุไป Backend
+
+      // ยิง PUT ไปอัปเดต (ใช้ /Cart ตัวใหญ่ตาม Controller)
+      await api.put(`/Cart/update-item/${cartItemId}`, {
+        quantity: qty,
         specialRequest: specialRequest.trim() || null,
+        optionIds: selectedOptionIds, // ส่ง ID ของตัวเลือกใหม่ไปแทนที่ของเดิม
       });
-      Alert.alert('สำเร็จ', 'เพิ่มสินค้าในตะกร้าแล้ว', [
+
+      Alert.alert('สำเร็จ', 'บันทึกการแก้ไขเรียบร้อย', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (err: any) {
-      console.log('add to cart error', err?.response?.data ?? err);
-      Alert.alert('ผิดพลาด', 'ไม่สามารถเพิ่มลงตะกร้าได้');
+      console.log('update cart error', err?.response?.data ?? err);
+      Alert.alert('ผิดพลาด', 'ไม่สามารถแก้ไขรายการได้');
     } finally {
       setSubmitting(false);
     }
@@ -775,11 +666,7 @@ export default function FoodDetailScreen({ route, navigation }: Props) {
   if (loading || !detail) {
     return (
       <View style={styles.center}>
-        {loading ? (
-          <ActivityIndicator size="large" />
-        ) : (
-          <Text>{error ?? 'ไม่พบข้อมูลเมนู'}</Text>
-        )}
+        {loading ? <ActivityIndicator size="large" /> : <Text>{error}</Text>}
       </View>
     );
   }
@@ -787,14 +674,9 @@ export default function FoodDetailScreen({ route, navigation }: Props) {
   return (
     <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
+        {/* ส่วนแสดงรูปภาพ */}
         {menuImgSource ? (
-          <Image
-            source={menuImgSource}
-            style={styles.heroImage}
-            onError={e =>
-              console.log('[DEBUG] Image Load Error:', e.nativeEvent.error)
-            }
-          />
+          <Image source={menuImgSource} style={styles.heroImage} />
         ) : (
           <View
             style={[
@@ -812,19 +694,19 @@ export default function FoodDetailScreen({ route, navigation }: Props) {
 
         <View style={styles.infoCard}>
           <Text style={styles.foodName}>{detail.name}</Text>
-          {detail.description ? (
+          {detail.description && (
             <Text style={styles.foodDesc}>{detail.description}</Text>
-          ) : null}
-          <Text style={styles.foodPrice}>
-            เริ่มต้น ฿ {detail.price.toFixed(2)}
-          </Text>
-
-          {shop?.name && (
-            <Text style={styles.shopName}>จากร้าน {shop.name}</Text>
           )}
+          <Text style={styles.foodPrice}>
+            ราคาต่อชิ้น ฿ {detail.price.toFixed(2)}
+          </Text>
+          <Text style={{ color: '#F97316', fontWeight: 'bold', marginTop: 5 }}>
+            [โหมดแก้ไขรายการ]
+          </Text>
         </View>
 
         <View style={{ paddingHorizontal: 16, marginTop: 24 }}>
+          {/* ส่วนตัวเลือก (Options) */}
           {(detail.optionGroups || []).map(g => (
             <View key={g.id} style={{ marginBottom: 16 }}>
               <Text style={styles.sectionHeader}>
@@ -835,7 +717,6 @@ export default function FoodDetailScreen({ route, navigation }: Props) {
                   </Text>
                 )}
               </Text>
-
               {g.options.map(o => {
                 const isSelected = (selected[g.id] ?? []).includes(o.id);
                 return (
@@ -844,8 +725,8 @@ export default function FoodDetailScreen({ route, navigation }: Props) {
                     style={[
                       styles.optionRow,
                       {
-                        borderColor: isSelected ? '#1BAF5D' : '#E5E7EB',
-                        backgroundColor: isSelected ? '#ECFDF3' : '#FFFFFF',
+                        borderColor: isSelected ? '#F97316' : '#E5E7EB', // เปลี่ยนสีธีมเป็นส้มตอนแก้ไข
+                        backgroundColor: isSelected ? '#FFF7ED' : '#FFFFFF',
                       },
                     ]}
                     activeOpacity={0.8}
@@ -864,10 +745,17 @@ export default function FoodDetailScreen({ route, navigation }: Props) {
                     <View
                       style={[
                         styles.radioOuter,
-                        isSelected && styles.radioOuterActive,
+                        isSelected && { borderColor: '#F97316' },
                       ]}
                     >
-                      {isSelected && <View style={styles.radioInner} />}
+                      {isSelected && (
+                        <View
+                          style={[
+                            styles.radioInner,
+                            { backgroundColor: '#F97316' },
+                          ]}
+                        />
+                      )}
                     </View>
                   </TouchableOpacity>
                 );
@@ -875,12 +763,12 @@ export default function FoodDetailScreen({ route, navigation }: Props) {
             </View>
           ))}
 
-          {/* 🟢 3. UI ช่องกรอกหมายเหตุ */}
+          {/* ส่วนกรอกหมายเหตุ */}
           <View style={{ marginBottom: 24, marginTop: 8 }}>
-            <Text style={styles.sectionHeader}>หมายเหตุถึงร้าน</Text>
+            <Text style={styles.sectionHeader}>หมายเหตุถึงร้าน (แก้ไข)</Text>
             <TextInput
               style={styles.noteInput}
-              placeholder="เช่น ไม่ใส่ผัก, ขอช้อนส้อม, แยกน้ำซุป..."
+              placeholder="เช่น ไม่ใส่ผัก, ขอช้อนส้อม..."
               placeholderTextColor="#9CA3AF"
               multiline
               value={specialRequest}
@@ -890,12 +778,12 @@ export default function FoodDetailScreen({ route, navigation }: Props) {
         </View>
       </ScrollView>
 
+      {/* Bottom Bar */}
       <View style={styles.bottomBar}>
         <View style={styles.qtyRow}>
           <TouchableOpacity
             onPress={() => setQty(q => Math.max(1, q - 1))}
             style={styles.qtyBtn}
-            disabled={qty <= 1}
           >
             <Text style={styles.qtyBtnText}>-</Text>
           </TouchableOpacity>
@@ -909,14 +797,14 @@ export default function FoodDetailScreen({ route, navigation }: Props) {
         </View>
 
         <TouchableOpacity
-          style={[styles.addBtn, submitting && { opacity: 0.6 }]}
-          onPress={handleAddToCart}
+          style={[styles.saveBtn, submitting && { opacity: 0.6 }]}
+          onPress={handleUpdateCart}
           disabled={submitting}
         >
           <Text style={styles.addBtnText}>
             {submitting
-              ? 'กำลังเพิ่ม...'
-              : `เพิ่มลงตะกร้า • ฿ ${total.toFixed(2)}`}
+              ? 'กำลังบันทึก...'
+              : `บันทึกการแก้ไข • ฿ ${total.toFixed(2)}`}
           </Text>
         </TouchableOpacity>
       </View>
@@ -926,7 +814,7 @@ export default function FoodDetailScreen({ route, navigation }: Props) {
         onPress={() => navigation.goBack()}
       >
         <Text style={{ color: '#172B4D', fontWeight: '700', fontSize: 16 }}>
-          ‹ Back
+          ‹ ยกเลิก
         </Text>
       </TouchableOpacity>
     </View>
@@ -935,11 +823,7 @@ export default function FoodDetailScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  heroImage: {
-    width: '100%',
-    height: 220,
-    backgroundColor: '#ccc',
-  },
+  heroImage: { width: '100%', height: 220, backgroundColor: '#ccc' },
   infoCard: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
@@ -954,25 +838,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     elevation: 4,
   },
-  foodName: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#172B4D',
-  },
-  foodDesc: {
-    marginTop: 4,
-    color: '#6B7280',
-  },
+  foodName: { fontSize: 20, fontWeight: '800', color: '#172B4D' },
+  foodDesc: { marginTop: 4, color: '#6B7280' },
   foodPrice: {
     marginTop: 8,
     fontSize: 18,
     fontWeight: '700',
     color: '#172B4D',
-  },
-  shopName: {
-    marginTop: 4,
-    fontSize: 13,
-    color: '#7B8AA3',
   },
   sectionHeader: {
     fontSize: 16,
@@ -990,16 +862,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  optionName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  optionPrice: {
-    marginTop: 2,
-    fontSize: 13,
-    color: '#6B7280',
-  },
+  optionName: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  optionPrice: { marginTop: 2, fontSize: 13, color: '#6B7280' },
   radioOuter: {
     width: 20,
     height: 20,
@@ -1009,23 +873,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioOuterActive: {
-    borderColor: '#1BAF5D',
-  },
   radioInner: {
     width: 10,
     height: 10,
     borderRadius: 999,
     backgroundColor: '#1BAF5D',
   },
-  // 🟢 สไตล์ของช่องกรอกหมายเหตุ
   noteInput: {
     borderWidth: 1,
     borderColor: '#E5E7EB',
     borderRadius: 12,
     padding: 12,
     minHeight: 80,
-    textAlignVertical: 'top', // ให้ cursor อยู่บนสุด
+    textAlignVertical: 'top',
     backgroundColor: '#F9FAFB',
     fontSize: 14,
     color: '#111827',
@@ -1042,11 +902,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
   },
-  qtyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 12,
-  },
+  qtyRow: { flexDirection: 'row', alignItems: 'center', marginRight: 12 },
   qtyBtn: {
     width: 32,
     height: 32,
@@ -1056,11 +912,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  qtyBtnText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-  },
+  qtyBtnText: { fontSize: 18, fontWeight: '700', color: '#111827' },
   qtyText: {
     minWidth: 32,
     textAlign: 'center',
@@ -1068,23 +920,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#111827',
   },
-  addBtn: {
+  saveBtn: {
     flex: 1,
-    backgroundColor: '#1BAF5D',
+    backgroundColor: '#F97316', // สีส้มสำหรับการแก้ไข
     borderRadius: 999,
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addBtnText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  backBtn: {
-    position: 'absolute',
-    top: 40,
-    left: 16,
-    padding: 4,
-  },
+  addBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  backBtn: { position: 'absolute', top: 40, left: 16, padding: 4 },
 });
